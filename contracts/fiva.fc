@@ -1,5 +1,54 @@
 #include "imports/stdlib.fc";
 
+const int min_tons_for_storage = 1500000000; ;; 1.5 ton
+
+() store_data(int seqno) impure inline {
+    set_data(
+        begin_cell()
+            .store_uint(seqno, 32)
+        .end_cell()
+    );
+}
+
+(int) load_data() inline_ref {
+    slice ds = get_data().begin_parse();
+    return (
+        ds~load_uint(32)
+    );
+}
+
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
-    return();
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+    if (flags & 1) {
+        return ();
+    }
+
+    slice sender_address = cs~load_msg_addr();
+
+    if (in_msg_body.slice_empty?()){
+        return ();
+    }
+
+    int op = in_msg_body~load_uint(32); ;; crc32
+
+    if (op == "deposit"c){
+        return ();
+    }
+
+    if (op == "transfer"c) {
+        ;; todo some logic
+    }
+
+    throw(0xffffff);
+}
+
+int get_seqno() method_id {
+    (int seqno) = load_data();
+    return seqno;
+}
+
+int get_smc_balance() method_id {
+    [int balance, _] = get_balance();
+    return balance;
 }
