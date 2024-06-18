@@ -1,6 +1,5 @@
 #include "imports/stdlib.fc";
-
-const int min_tons_for_storage = 1500000000; ;; 1.5 ton
+#include "imports/fiva-utils.fc";
 
 () store_data(int seqno) impure inline {
     set_data(
@@ -18,6 +17,10 @@ const int min_tons_for_storage = 1500000000; ;; 1.5 ton
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+        return ();
+    }
+    
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     if (flags & 1) {
@@ -25,19 +28,11 @@ const int min_tons_for_storage = 1500000000; ;; 1.5 ton
     }
 
     slice sender_address = cs~load_msg_addr();
-
-    if (in_msg_body.slice_empty?()){
-        return ();
-    }
-
     int op = in_msg_body~load_uint(32); ;; crc32
+    int query_id = in_msg_body~load_uint(64);
 
     if (op == "deposit"c){
         return ();
-    }
-
-    if (op == "transfer"c) {
-        ;; todo some logic
     }
 
     throw(0xffffff);
