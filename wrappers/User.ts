@@ -1,22 +1,22 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 
-export type PrincipleTokenConfig = {};
+export type UserConfig = {};
 
-export function principleTokenConfigToCell(config: PrincipleTokenConfig): Cell {
+export function userConfigToCell(config: UserConfig): Cell {
     return beginCell().endCell();
 }
 
-export class PrincipleToken implements Contract {
+export class User implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
 
     static createFromAddress(address: Address) {
-        return new PrincipleToken(address);
+        return new User(address);
     }
 
-    static createFromConfig(config: PrincipleTokenConfig, code: Cell, workchain = 0) {
-        const data = principleTokenConfigToCell(config);
+    static createFromConfig(config: UserConfig, code: Cell, workchain = 0) {
+        const data = userConfigToCell(config);
         const init = { code, data };
-        return new PrincipleToken(contractAddress(workchain, init), init);
+        return new User(contractAddress(workchain, init), init);
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) {
