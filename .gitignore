@@ -1,5 +1,8 @@
+.vscode
+.idea
+.DS_Store
+
 node_modules
 temp
 build
 dist
-.DS_Store
