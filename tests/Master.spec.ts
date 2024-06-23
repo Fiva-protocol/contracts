@@ -6,6 +6,7 @@ import { compile } from '@ton/blueprint';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { assertJettonBalanceEqual, deployJettonWithWallet, setupMaster, supplyJetton } from './helper';
+import { User } from '../wrappers/User';
 
 describe('Master', () => {
     let masterCode: Cell;
@@ -119,7 +120,7 @@ describe('Master', () => {
             success: true
         });
 
-        // Master -> Master Order Jetton1 Wallet
+        // Master -> Master Jetton1 Wallet
         expect(result.transactions).toHaveTransaction({
             from: master.address,
             to: jetton_wallet_master,
@@ -135,10 +136,11 @@ describe('Master', () => {
             success: true
         });
 
+        const user_principle_token_address = await principleToken.minter.getWalletAddress(user_address);
+
         // Jettons are in User Order Wallet
         await assertJettonBalanceEqual(blockchain, jetton_wallet_master, 0n);
         await assertJettonBalanceEqual(blockchain, jetton_wallet_user, amount);
-
         // await assertJettonBalanceEqual(blockchain, user_principle_token_address, amount);
     });
 });

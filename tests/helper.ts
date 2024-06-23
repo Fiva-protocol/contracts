@@ -1,5 +1,5 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
-import { Address, Cell, beginCell, toNano } from '@ton/core';
+import { Address, beginCell, Cell, toNano } from '@ton/core';
 import '@ton/test-utils';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
@@ -93,22 +93,21 @@ export async function supplyJetton(
     const user_address = await master.getWalletAddress(underlyingHolder.address);
     const user_principle_token_address = await principleJettonMinter.getWalletAddress(user_address);
 
-    const result = await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
-        value: toNano('0.3'),
-        toAddress: master.address,
-        queryId: 1,
-        jettonAmount: amount,
-        fwdAmount: toNano('0.2'),
-        fwdPayload: beginCell()
-            .storeUint(Opcodes.supply, 32) // op code
-            .storeUint(111, 64) // query id
-            .storeAddress(user_principle_token_address)
-            .storeCoins(amount)
-            .storeAddress(principleJettonMinter.address)
-            .endCell()
-    });
-
-    return result;
+    return await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
+            value: toNano('0.3'),
+            toAddress: master.address,
+            queryId: 1,
+            jettonAmount: amount,
+            fwdAmount: toNano('0.2'),
+            fwdPayload: beginCell()
+                .storeUint(Opcodes.supply, 32) // op code
+                .storeUint(11, 64) // query id
+                .storeAddress(user_principle_token_address)
+                .storeCoins(amount)
+                .storeAddress(principleJettonMinter.address)
+                .endCell()
+        }
+    );
 }
 
 export async function assertJettonBalanceEqual(blockchain: Blockchain, jettonAddress: Address, equalTo: bigint) {

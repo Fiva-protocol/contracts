@@ -36,16 +36,9 @@ export class Master implements Contract {
         const result = await provider.get('get_wallet_address', [
             {
                 type: 'slice',
-                cell: beginCell().storeAddress(address).endCell(),
-            } as TupleItemSlice,
+                cell: beginCell().storeAddress(address).endCell()
+            } as TupleItemSlice
         ]);
-
-        return result.stack.readAddress();
-    }
-
-
-    async getRecentSentAddress(provider: ContractProvider) {
-        const result = await provider.get('recent_sent_address', []);
 
         return result.stack.readAddress();
     }
