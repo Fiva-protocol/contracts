@@ -3,7 +3,7 @@
 
 #include "imports/stdlib.fc";
 #include "imports/op-codes.fc";
-#include "utils.fc";
+#include "imports/utils.fc";
 #pragma version >=0.2.0;
 
 
@@ -14,16 +14,15 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     slice ds = get_data().begin_parse();
     return (
         ds~load_msg_addr(), ;; admin_address
-        ds~load_ref() ;; user_code
+        ds~load_ref() ;; user_order_code
     );
 }
 
-() save_data(slice admin_address, cell user_code) impure inline {
-    set_data(
-        begin_cell()
-            .store_slice(admin_address)
-            .store_ref(user_code)
-            .end_cell()
+() save_data(slice admin_address, cell user_order_code) impure inline {
+    set_data(begin_cell()
+        .store_slice(admin_address)
+        .store_ref(user_order_code)
+        .end_cell()
     );
 }
 
@@ -40,29 +39,6 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         .end_cell();
     send_raw_message(msg, 1); ;; revert on errors
     return to_contract_address;
-}
-
-() create_order_with_mint(slice owner_address, cell user_order_code, int query_id, int from_amount, slice to_address, int to_amount, slice to_master_address) impure {
-    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_order_code);
-    slice to_contract_address = calculate_user_order_address(state_init);
-
-    cell msg = begin_cell()
-        .store_uint(0x18, 6)
-        .store_slice(to_contract_address)
-        .store_coins(exec_fwd_fee)
-        .store_uint(7, 108)
-        .store_ref(state_init)
-        .store_ref(begin_cell()
-            .store_uint("create_order"c, 32)
-            .store_uint(query_id, 64)
-            .store_coins(from_amount)
-            .store_slice(to_address)
-            .store_coins(to_amount)
-            .store_slice(to_master_address)
-            .end_cell())
-        .end_cell();
-
-    send_raw_message(msg, 64);
 }
 
 () send_tokens(slice wallet_address, slice to_address, int jetton_amount, int query_id, cell fwd_msg) impure {
@@ -92,6 +68,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         ;; ignore empty messages
         return ();
     }
+
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     if (flags & 1) {
@@ -102,25 +79,13 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     slice sender_address = cs~load_msg_addr();
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
-    (slice admin_address, cell user_order_code) = load_data();
-
-    if (op == "create_order"c) {
-        int from_amount = in_msg_body~load_coins();
-        ;; message should have at least from_amount TONs + fwd fee
-        throw_unless(410, msg_value > 10000000);
-        slice to_address = in_msg_body~load_msg_addr();
-        int to_amount = in_msg_body~load_coins();
-        slice to_master_address = in_msg_body~load_msg_addr();
-
-        create_order_with_mint(sender_address, user_order_code, query_id, from_amount, to_address, to_amount, to_master_address);
-        return ();
-    }
+    (_, cell user_code) = load_data();
 
     if (op == op::transfer_notification()) {
         int jetton_amount = in_msg_body~load_coins();
         slice to_address = in_msg_body~load_msg_addr();
         cell fwd_msg = in_msg_body~load_ref();
-        slice user_contract_address = mint_order_contract(to_address, user_order_code);
+        slice user_contract_address = mint_order_contract(to_address, user_code);
 
         send_tokens(sender_address, user_contract_address, jetton_amount, query_id, fwd_msg);
         ;; TODO: send TONs left to the user back
@@ -131,11 +96,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 }
 
 slice get_wallet_address(slice owner_address) method_id {
-    (_, cell user_order_code) = load_data();
-    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_order_code);
+    (_, cell user_code) = load_data();
+    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code);
     return calculate_user_order_address(state_init);
-}
-
-int get_status() method_id {
-    return 0;
 }

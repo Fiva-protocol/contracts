@@ -1,13 +1,18 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import { TupleItemSlice } from '@ton/core/dist/tuple/tuple';
 
-export type MasterConfig = {};
+export type MasterConfig = {
+    admin: Address;
+    userCode: Cell;
+};
 
 export function masterConfigToCell(config: MasterConfig): Cell {
-    return beginCell().endCell();
+    return beginCell().storeAddress(config.admin).storeRef(config.userCode).endCell();
 }
 
 export class Master implements Contract {
-    constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
+    constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {
+    }
 
     static createFromAddress(address: Address) {
         return new Master(address);
@@ -23,7 +28,25 @@ export class Master implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell(),
+            body: beginCell().endCell()
         });
+    }
+
+    async getWalletAddress(provider: ContractProvider, address: Address) {
+        const result = await provider.get('get_wallet_address', [
+            {
+                type: 'slice',
+                cell: beginCell().storeAddress(address).endCell(),
+            } as TupleItemSlice,
+        ]);
+
+        return result.stack.readAddress();
+    }
+
+
+    async getRecentSentAddress(provider: ContractProvider) {
+        const result = await provider.get('recent_sent_address', []);
+
+        return result.stack.readAddress();
     }
 }

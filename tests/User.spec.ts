@@ -3,33 +3,39 @@ import { Cell, toNano } from '@ton/core';
 import { User } from '../wrappers/User';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
+import { Master } from '../wrappers/Master';
+import { assertJettonBalanceEqual, deployJettonWithWallet, setupMaster } from './helper';
+
 
 describe('User', () => {
-    let code: Cell;
+    let masterCode: Cell;
+    let userCode: Cell;
+    let jettonMinterCode: Cell;
+    let jettonWalletCode: Cell;
 
     beforeAll(async () => {
-        code = await compile('User');
+        masterCode = await compile('Master');
+        userCode = await compile('User');
+        jettonMinterCode = await compile('JettonMinter');
+        jettonWalletCode = await compile('JettonWallet');
     });
 
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
+    let creator: SandboxContract<TreasuryContract>;
     let user: SandboxContract<User>;
+    let master: SandboxContract<Master>;
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
-
-        user = blockchain.openContract(User.createFromConfig({}, code));
-
         deployer = await blockchain.treasury('deployer');
+        creator = await blockchain.treasury('creator');
 
-        const deployResult = await user.sendDeploy(deployer.getSender(), toNano('0.05'));
+        master = await setupMaster(blockchain, deployer, masterCode, userCode);
 
-        expect(deployResult.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: user.address,
-            deploy: true,
-            success: true,
-        });
+        // user = blockchain.openContract(User.createFromAddress(await master.getWalletAddress(creator.address)),);
+
+        // expect((await user.getSupplies())?.keys().length).toEqual(1);
     });
 
     it('should deploy', async () => {
