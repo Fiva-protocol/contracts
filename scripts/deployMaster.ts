@@ -1,9 +1,12 @@
-import { toNano } from '@ton/core';
+import { Address, toNano } from '@ton/core';
 import { Master } from '../wrappers/Master';
 import { compile, NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-    const master = provider.open(Master.createFromConfig({}, await compile('Master')));
+    const master = provider.open(Master.createFromConfig({
+        admin: provider.sender().address as Address,
+        userCode: await compile('User')
+    }, await compile('Master')));
 
     await master.sendDeploy(provider.sender(), toNano('0.05'));
 
