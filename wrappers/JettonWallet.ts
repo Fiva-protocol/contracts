@@ -50,7 +50,7 @@ export class JettonWallet implements Contract {
             jettonAmount: bigint;
             fwdAmount: bigint;
             fwdPayload: Cell;
-        }
+        },
     ) {
         await provider.internal(via, {
             value: opts.value,
@@ -65,7 +65,7 @@ export class JettonWallet implements Contract {
                 .storeCoins(opts.fwdAmount)
                 .storeUint(0, 1)
                 .storeRef(opts.fwdPayload)
-                .endCell()
+                .endCell(),
         });
     }
 

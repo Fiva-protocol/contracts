@@ -6,7 +6,6 @@
 #include "imports/utils.fc";
 #pragma version >=0.2.0;
 
-
 const storage_fee = 5000000; ;; 0.005 TON
 const exec_fwd_fee = 30000000;  ;; 0.03 TON
 
@@ -26,7 +25,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     );
 }
 
-(slice) mint_order_contract(slice owner_address, cell user_code) impure {
+(slice) mint_user_contract(slice owner_address, cell user_code) impure {
     cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code);
     slice to_contract_address = calculate_user_order_address(state_init);
     var msg = begin_cell()
@@ -39,6 +38,62 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         .end_cell();
     send_raw_message(msg, 1); ;; revert on errors
     return to_contract_address;
+}
+
+() mint_principle_token(slice pt_addr, slice to_addr, int amount, int jetton_amount, int query_id) impure inline {
+    var msg_body_pt = begin_cell()
+        .store_uint(op::mint(), 32)
+        .store_uint(query_id, 64)
+        .store_slice(to_addr)
+        .store_coins(amount)
+        .store_ref(begin_cell()
+            .store_uint(op::internal_transfer(), 32)
+            .store_uint(query_id, 64)
+            .store_coins(jetton_amount)
+            .store_slice(my_address())
+            .store_slice(my_address())
+            .store_coins(0)
+            .store_uint(0, 1)
+            .end_cell())
+        .end_cell();
+
+    var msg_pt = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(pt_addr)
+        .store_coins(amount) ;; is it correct?
+        .store_uint(1, 107)
+        .store_ref(msg_body_pt)
+        .end_cell();
+
+    send_raw_message(msg_pt, 1); ;; revert on errors
+}
+
+() mint_yield_token(slice yt_addr, slice to_addr, int amount, int jetton_amount, int query_id) impure inline {
+    var msg_body_yt = begin_cell()
+        .store_uint(op::mint(), 32)
+        .store_uint(query_id, 64)
+        .store_slice(to_addr)
+        .store_coins(amount)
+        .store_ref(begin_cell()
+            .store_uint(op::internal_transfer(), 32)
+            .store_uint(query_id, 64)
+            .store_coins(jetton_amount)
+            .store_slice(my_address())
+            .store_slice(my_address())
+            .store_coins(0)
+            .store_uint(0, 1)
+            .end_cell())
+        .end_cell();
+
+    var msg_yt = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(yt_addr)
+        .store_coins(amount) ;; is it correct?
+        .store_uint(1, 107)
+        .store_ref(msg_body_yt)
+        .end_cell();
+
+    send_raw_message(msg_yt, 1); ;; revert on errors
 }
 
 () send_tokens(slice wallet_address, slice to_address, int jetton_amount, int query_id, cell fwd_msg) impure {
@@ -64,31 +119,50 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
-    if (in_msg_body.slice_empty?()) { ;; ignore empty messages
+    if (in_msg_body.slice_empty?()) {
+        ;; ignore empty messages
         return ();
     }
 
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
-    if (flags & 1) { ;; ignore all bounced messages
+    if (flags & 1) {
+        ;; ignore all bounced messages
         return ();
     }
 
+
     slice sender_address = cs~load_msg_addr();
+    cs~load_msg_addr(); ;; skip dst
+    cs~load_coins(); ;; skip value
+    cs~skip_bits(1); ;; skip extracurrency collection
+    cs~load_coins(); ;; skip ihr_fee
+    cs~load_coins();
     int op = in_msg_body~load_uint(32);
-    int query_id = in_msg_body~load_uint(64);
+    in_msg_body~load_uint(64);
     (_, cell user_code) = load_data();
 
     if (op == op::transfer_notification()) {
         int jetton_amount = in_msg_body~load_coins();
-        slice to_address = in_msg_body~load_msg_addr();
+        in_msg_body~load_msg_addr();
         cell fwd_msg = in_msg_body~load_ref();
-        slice user_contract_address = mint_order_contract(to_address, user_code);
 
-        save_data(sender_address, user_code);
-        send_tokens(sender_address, user_contract_address, jetton_amount, query_id, fwd_msg);
+        slice fwd_cs = fwd_msg.begin_parse();
+        int fwd_op = fwd_cs~load_uint(32);
+        int fwd_query_id = fwd_cs~load_uint(64);
+        slice to_address = fwd_cs~load_msg_addr();
+        slice user_contract_address = mint_user_contract(to_address, user_code);
+
+        fwd_cs~load_coins();
+        (slice yt_addr, slice pt_addr) = (fwd_cs~load_msg_addr(), fwd_cs~load_msg_addr());
+
+        if (fwd_op == "supply"c) {
+            mint_principle_token(pt_addr, user_contract_address, exec_fwd_fee, jetton_amount, fwd_query_id);
+            mint_yield_token(yt_addr, user_contract_address, exec_fwd_fee, jetton_amount, fwd_query_id);
+        }
 
         ;; TODO: send TONs left to the user back
+
         return ();
     }
 

@@ -66,6 +66,11 @@ export class User implements Contract {
         }
         return orders;
     }
+
+    async getMasterAddr(provider: ContractProvider) {
+        const result = await provider.get('get_master_addr', []);
+        return result.stack.readAddress();
+    }
 }
 
 const supplyDataSerializer = {
