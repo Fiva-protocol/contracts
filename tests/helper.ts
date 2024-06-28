@@ -102,7 +102,6 @@ export async function supplyJetton(
     amount: bigint,
     principleJettonMinter: SandboxContract<JettonMinter>,
     yieldJettonMinter: SandboxContract<JettonMinter>,
-    maturity: bigint
 ) {
     return await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
             value: toNano('0.5'),
@@ -115,12 +114,15 @@ export async function supplyJetton(
                 .storeUint(11, 64) // query id
                 .storeAddress(underlyingHolder.address)
                 .storeCoins(amount)
-                .storeUint(maturity, 32)
                 .storeAddress(yieldJettonMinter.address)
                 .storeAddress(principleJettonMinter.address)
                 .endCell()
         }
     );
+}
+
+export async function beforeSetup() {
+
 }
 
 export async function assertJettonBalanceEqual(blockchain: Blockchain, jettonAddress: Address, equalTo: bigint) {

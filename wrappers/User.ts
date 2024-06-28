@@ -53,4 +53,9 @@ export class User implements Contract {
         const result = await provider.get('get_master_addr', []);
         return result.stack.readAddress();
     }
+
+    async getMaturity(provider: ContractProvider) {
+        const result = await provider.get('get_maturity', []);
+        return result.stack.readBigNumber();
+    }
 }
