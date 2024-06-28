@@ -36,6 +36,52 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 () on_bounce(slice in_msg_body) impure {
 }
 
+() burn_principle_token(slice pt_addr, slice response_addr, int amount, int jetton_amount, int query_id) impure inline {
+    var msg_body_pt = begin_cell()
+        .store_uint(op::burn(), 32)
+        .store_uint(query_id, 64)
+        .store_coins(jetton_amount)
+        .store_slice(response_addr);
+
+    var msg_pt = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(pt_addr)
+        .store_coins(amount) ;; is it correct?
+        .store_uint(1, 107)
+        .store_ref(msg_body_pt)
+        .end_cell();
+
+    send_raw_message(msg_pt, 1 + 16); ;; revert on errors
+}
+
+;; () mint_yield_token(slice yt_addr, slice to_addr, int amount, int jetton_amount, int query_id) impure inline {
+;;     var msg_body_yt = begin_cell()
+;;         .store_uint(op::mint(), 32)
+;;         .store_uint(query_id, 64)
+;;         .store_slice(to_addr)
+;;         .store_coins(amount)
+;;         .store_ref(begin_cell()
+;;             .store_uint(op::internal_transfer(), 32)
+;;             .store_uint(query_id, 64)
+;;             .store_coins(jetton_amount)
+;;             .store_slice(my_address())
+;;             .store_slice(my_address())
+;;             .store_coins(0)
+;;             .store_uint(0, 1)
+;;             .end_cell())
+;;         .end_cell();
+;;
+;;     var msg_yt = begin_cell()
+;;         .store_uint(0x18, 6)
+;;         .store_slice(yt_addr)
+;;         .store_coins(amount) ;; is it correct?
+;;         .store_uint(1, 107)
+;;         .store_ref(msg_body_yt)
+;;         .end_cell();
+;;
+;;     send_raw_message(msg_yt, 1); ;; revert on errors
+;; }
+
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     if (in_msg_body.slice_empty?()) {
         ;; ignore empty messages
@@ -49,22 +95,40 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         return ();
     }
 
-    slice sender_address = cs~load_msg_addr();
+    slice sender_addr = cs~load_msg_addr();
+    cs~load_msg_addr(); ;; skip dst
+    cs~load_coins(); ;; skip value
+    cs~skip_bits(1); ;; skip extracurrency collection
+    cs~load_coins(); ;; skip ihr_fee
+    cs~load_coins();
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
+    (_, slice master_addr, int maturity, _, _) = load_data();
 
     if (op == op::transfer_notification()) {
-        (int jetton_amount, slice from_address) = (in_msg_body~load_coins(), in_msg_body~load_msg_addr());
-        cell fwd_msg = in_msg_body~load_ref();
-        slice fwd_cs = fwd_msg.begin_parse();
-        int fwd_op = fwd_cs~load_uint(32);
-        int fwd_query_id = fwd_cs~load_uint(64);
-
-        return ();
+        ;; nothing todo
     }
 
     if (op == op::excesses()) {
         return ();
+    }
+
+    if (op == "redeem"c) {
+        if (now() < maturity) {
+            int jetton_amounts = in_msg_body~load_coins();
+            in_msg_body~load_msg_addr();
+            in_msg_body~skip_bits(1);
+
+            slice pt_addr = in_msg_body~load_msg_addr();
+            slice yt_addr = in_msg_body~load_msg_addr();
+            ~dump(jetton_amounts);
+
+            burn_principle_token(pt_addr, sender_addr, exec_fwd_fee, jetton_amounts, query_id);
+
+            return ();
+        } else {
+            return ();
+        }
     }
 
     throw(0xffff);

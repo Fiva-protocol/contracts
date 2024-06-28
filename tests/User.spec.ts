@@ -2,12 +2,13 @@ import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { beginCell, Cell, toNano } from '@ton/core';
 import { User } from '../wrappers/User';
 import '@ton/test-utils';
-import { compile } from '@ton/blueprint';
+import { compile, sleep } from '@ton/blueprint';
 import { Master } from '../wrappers/Master';
 import { deployJettonWithWallet, generateKP, setupMaster, supplyJetton } from './helper';
 import { KeyPair } from 'ton-crypto';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
+import { delay } from '@ton/ton/dist/utils/time';
 
 
 describe('User', () => {
@@ -30,7 +31,6 @@ describe('User', () => {
 
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
-    let creator: SandboxContract<TreasuryContract>;
     let master: SandboxContract<Master>;
     let underlyingHolder: SandboxContract<TreasuryContract>;
 
@@ -50,7 +50,6 @@ describe('User', () => {
     beforeEach(async () => {
         blockchain = await Blockchain.create();
         deployer = await blockchain.treasury('deployer');
-        creator = await blockchain.treasury('creator');
         underlyingHolder = await blockchain.treasury('underlying holder');
 
         master = await setupMaster(blockchain, deployer, masterCode, userCode, maturity, index, kp.publicKey);
@@ -172,5 +171,39 @@ describe('User', () => {
         const user = blockchain.openContract(User.createFromAddress(userAddress));
         const indexFromContract = await user.getIndex();
         expect(indexFromContract).toEqual(0n);
+    });
+
+    it('should redeem', async () => {
+        const amount: bigint = 109n;
+        const currentTimestamp: bigint = BigInt(Math.floor(Date.now() / 1000));
+        const newTimestamp: bigint = currentTimestamp + 5n; // +5sec
+
+        let newMaster = await setupMaster(blockchain, deployer, masterCode, userCode, newTimestamp, index, kp.publicKey);
+
+        const result = await supplyJetton(underlyingHolder, newMaster, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const userAddress = await newMaster.getWalletAddress(underlyingHolder.address);
+
+        expect(result.transactions).toHaveTransaction({
+            from: newMaster.address,
+            to: userAddress,
+            deploy: true,
+            success: true
+        });
+
+        const user = blockchain.openContract(User.createFromAddress(userAddress));
+        const redeemResult = await user.sendRedeem(underlyingHolder.getSender(), {
+            value: toNano('0.1'),
+            queryId: 13,
+            jettonAmount: amount,
+            principleTokenAddr: principleToken.minter.address,
+            yieldTokenAddr: yieldToken.minter.address,
+            fwdPayload: beginCell().endCell()
+        });
+
+        expect(redeemResult.transactions).toHaveTransaction({
+            from: underlyingHolder.address,
+            to: userAddress,
+            success: true
+        });
     });
 });

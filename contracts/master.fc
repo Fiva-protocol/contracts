@@ -150,6 +150,10 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         return ();
     }
 
+    if (op == op::burn_notification()) {
+        ~dump(1337228);
+    }
+
     throw(0xffff);
 }
 

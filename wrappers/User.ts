@@ -8,6 +8,7 @@ import {
     Sender,
     SendMode
 } from '@ton/core';
+import { Opcodes } from '../helpers/Opcodes';
 
 export type UserConfig = {
     owner: Address;
@@ -46,6 +47,36 @@ export class User implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().endCell()
         });
+    }
+
+    async sendRedeem(
+        provider: ContractProvider,
+        via: Sender,
+        opts: {
+            value: bigint;
+            queryId: number;
+            jettonAmount: bigint,
+            principleTokenAddr: Address,
+            yieldTokenAddr: Address,
+            fwdPayload: Cell;
+        }
+    ) {
+        await provider.internal(via, {
+                value: opts.value,
+                sendMode: SendMode.PAY_GAS_SEPARATELY,
+                body: beginCell()
+                    .storeUint(Opcodes.redeem, 32)
+                    .storeUint(opts.queryId, 64)
+                    .storeCoins(opts.jettonAmount)
+                    .storeAddress(via.address)
+                    .storeUint(0, 1)
+                    .storeAddress(opts.principleTokenAddr)
+                    .storeAddress(opts.yieldTokenAddr)
+                    .storeUint(0, 1)
+                    .storeRef(opts.fwdPayload)
+                    .endCell()
+            }
+        );
     }
 
     async getMasterAddr(provider: ContractProvider) {
