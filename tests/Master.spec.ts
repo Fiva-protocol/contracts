@@ -212,4 +212,18 @@ describe('Master', () => {
 
         expect(await master.getIndex()).toEqual(newIndex);
     });
+
+    it('should claim rewards', async () => {
+        const newIndex: bigint = 27n;
+
+        await master.sendExternalMessage(
+            {
+                opCode: Opcodes.updateIndex,
+                index: newIndex,
+                signFunc: (buf) => sign(buf, kp.secretKey)
+            }
+        );
+
+        expect(await master.getIndex()).toEqual(newIndex);
+    });
 });

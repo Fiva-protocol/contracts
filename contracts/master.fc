@@ -105,7 +105,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 () claim_interest(int amount, int query_id, int index, slice user_contract_addr) impure inline {
     var msg_body = begin_cell()
         .store_uint(op::claim_interest(),32)
-        .store_uint(query_id, 64) ;;change later
+        .store_uint(query_id, 64) 
         .store_uint(index, 32)
         .end_cell();
         
@@ -118,6 +118,34 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     .end_cell();
 
     send_raw_message(msg, 64);
+}
+
+() send_interest(int interest, slice ts_master_address, int query_id, slice to_addr, int amount, int fwd_amount ) impure inline {
+    var msg_body = begin_cell()
+        .store_uint(op::transfer(), 32)
+        .store_uint(query_id, 64)
+        .store_coins(interest)
+        .store_slice(to_addr)
+        .store_slice(to_addr) ;; Response address
+        .store_uint(0, 1)
+        .store_coins(fwd_amount)
+        .store_uint(0, 1)
+        .store_ref(begin_cell()
+            .store_uint(777, 32)
+            .store_uint(query_id, 64)
+            .store_coins(interest)
+            .end_cell())
+        .end_cell();
+
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(ts_master_address)  ;; tsTON Wallet Master address
+        .store_coins(amount) 
+        .store_uint(1, 107)
+        .store_ref(msg_body)
+        .end_cell();
+
+    send_raw_message(msg, 64); ;; revert on errors
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -177,7 +205,15 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         return ();
      }
 
-
+    if (op == op::send_interest()){
+        int interest = in_msg_body~load_coins();
+        slice ts_master_address = in_msg_body~load_msg_addr();
+        slice to_addr = in_msg_body~load_msg_addr();
+        int amount = in_msg_body~load_coins();
+        int fwd_amount = in_msg_body~load_coins();
+        send_interest(interest,ts_master_address,query_id,to_addr,amount,fwd_amount);
+        return ();
+    }
 
     throw(0xffff);
 }

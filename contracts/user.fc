@@ -87,8 +87,8 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 
     if (op == op::claim_interest()){
         int new_index = in_msg_body~load_uint(32);
-        int ytbalance = in_msg_body~load_coins(); ;;yt balance net
-        int amount = in_msg_body~load_coins();
+        int ytbalance = 1000; ;;yt balance net
+        int amount = 10000000;
         (slice owner,slice master_contract,int maturity, int index,int interest) = load_data();
         
         if (index != 0){
