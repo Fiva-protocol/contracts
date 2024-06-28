@@ -2,11 +2,13 @@
 
 int workchain() asm "0 PUSHINT";
 
-cell pack_data(slice owner_address, slice master_address, int maturity) inline {
+cell pack_data(slice owner_address, slice master_address, int maturity, int index, int interest) inline {
     return begin_cell()
         .store_slice(owner_address)
         .store_slice(master_address)
         .store_uint(maturity, 32)
+        .store_uint(index, 32)
+        .store_uint(interest, 32)
         .end_cell();
 }
 
@@ -14,7 +16,7 @@ cell calculate_user_order_state_init(slice owner_address, slice master_address, 
     return begin_cell()
         .store_uint(0, 2)
         .store_dict(wallet_code)
-        .store_dict(pack_data(owner_address, master_address, maturity))
+        .store_dict(pack_data(owner_address, master_address, maturity, 0, 0))
         .store_uint(0, 1)
         .end_cell();
 }

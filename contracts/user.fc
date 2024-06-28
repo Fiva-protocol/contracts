@@ -10,21 +10,30 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 ;; creator address
 ;; master contract address
 ;; maturity
-(slice, slice, int) load_data() inline {
+;; index
+;; interest
+(slice, slice, int, int, int) load_data() inline {
     slice ds = get_data().begin_parse();
-    return (ds~load_msg_addr(), ds~load_msg_addr(), ds~load_uint(32));
+    return (
+        ds~load_msg_addr(),
+        ds~load_msg_addr(),
+        ds~load_uint(32),
+        ds~load_uint(32),
+        ds~load_uint(32)
+    );
 }
 
-() save_data(slice owner, slice master_contract, int maturity) impure inline {
+() save_data(slice owner, slice master_contract, int maturity, int index, int interest) impure inline {
     set_data(begin_cell()
         .store_slice(owner)
         .store_slice(master_contract)
         .store_uint(maturity, 32)
+        .store_uint(index, 32)
+        .store_uint(interest, 32)
         .end_cell());
 }
 
 () on_bounce(slice in_msg_body) impure {
-
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -62,11 +71,21 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 }
 
 slice get_master_addr() method_id {
-    (_, slice master_addr, _) = load_data();
+    (_, slice master_addr, _, _, _) = load_data();
     return master_addr;
 }
 
-(int) get_maturity() method_id {
-    (_, _, int maturity) = load_data();
+int get_maturity() method_id {
+    (_, _, int maturity, _, _) = load_data();
     return maturity;
+}
+
+int get_index() method_id {
+    (_, _, _, int index, _) = load_data();
+    return index;
+}
+
+int get_interest() method_id {
+    (_, _, _, _, int interest) = load_data();
+    return interest;
 }
