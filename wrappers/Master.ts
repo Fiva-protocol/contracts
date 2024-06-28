@@ -41,6 +41,29 @@ export class Master implements Contract {
         });
     }
 
+    async sendClaim(
+        provider: ContractProvider,
+        via: Sender,
+        opts: {
+            amount: bigint;
+            queryId: number;
+            tsMasterAddress: Address;
+        },
+    ) {
+        const result = await provider.internal(via, {
+            value: opts.amount,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(778, 32)
+                .storeUint(opts.queryId, 64)
+                .storeCoins(opts.amount)
+                .storeAddress(opts.tsMasterAddress)
+                .endCell(),
+        });
+    
+        return result;
+    }
+
     async getWalletAddress(provider: ContractProvider, address: Address) {
         const result = await provider.get('get_wallet_address', [
             {

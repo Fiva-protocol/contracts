@@ -8,6 +8,7 @@ import { JettonWallet } from '../wrappers/JettonWallet';
 import { assertJettonBalanceEqual, deployJettonWithWallet, setupMaster, supplyJetton, generateKP } from './helper';
 import { KeyPair, sign } from 'ton-crypto';
 import { Opcodes } from '../helpers/Opcodes';
+import { User } from '../wrappers/User';
 
 describe('Master', () => {
     let masterCode: Cell;
@@ -16,7 +17,7 @@ describe('Master', () => {
     let jettonWalletCode: Cell;
     let kp: KeyPair;
     let index = 99n;
-    let maturity = 1n;
+    let maturity = 1000n;
 
     beforeAll(async () => {
         masterCode = await compile('Master');
@@ -214,7 +215,18 @@ describe('Master', () => {
     });
 
     it('should claim rewards', async () => {
-        const newIndex: bigint = 27n;
+        const amount: bigint = 100n;
+        await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const userAddress = await master.getWalletAddress(underlyingHolder.address);
+        const newIndex: bigint = 110n;
+
+        await underlyingAsset.minter.sendMint(deployer.getSender(), {
+            toAddress: master.address,
+            jettonAmount: 10000n,
+            amount: toNano('0.05'),
+            queryId: Date.now(),
+            value: toNano('0.2')
+        });
 
         await master.sendExternalMessage(
             {
@@ -223,7 +235,54 @@ describe('Master', () => {
                 signFunc: (buf) => sign(buf, kp.secretKey)
             }
         );
+        
+        const tsMasterAddress = await underlyingAsset.minter.getWalletAddress(master.address);
+        const result = await master.sendClaim(
+            underlyingHolder.getSender(),
+            {
+                queryId: 100,
+                amount: toNano('0.5'),
+                tsMasterAddress: tsMasterAddress
+            }
+        )
 
-        expect(await master.getIndex()).toEqual(newIndex);
+        expect(result.transactions).toHaveTransaction({
+            from: underlyingHolder.address,
+            to: master.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: master.address,
+            to: userAddress,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: userAddress,
+            to: master.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: master.address,
+            to: tsMasterAddress,
+            success: true
+        });
+        const userTsAddress = await underlyingAsset.minter.getWalletAddress(underlyingHolder.address)
+
+        expect(result.transactions).toHaveTransaction({
+            from: tsMasterAddress,
+            to: userTsAddress,
+            success: true
+        });
+        
+
+        const jettonWallet = JettonWallet.createFromAddress(userTsAddress);
+        const jetton = blockchain.openContract(jettonWallet);
+        const data = await jetton.getWalletData();
+        console.log ("Data:", data )
+        
+        // expect(balance).toEqual(amount2);
     });
 });

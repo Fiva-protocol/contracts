@@ -173,4 +173,6 @@ describe('User', () => {
         const indexFromContract = await user.getIndex();
         expect(indexFromContract).toEqual(0n);
     });
+
+    
 });

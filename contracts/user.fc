@@ -36,11 +36,13 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 () on_bounce(slice in_msg_body) impure {
 }
 
-() send_cacl_interest (int interest, slice master_address, int amount, int query_id) impure {
+() send_cacl_interest (int interest, slice master_address, int amount, int query_id, slice ts_master_address, slice owner) impure {
     var msg_body = begin_cell()
     .store_uint(op::send_interest(),32)
     .store_uint(query_id, 64)
     .store_uint(interest, 32)
+    .store_slice(ts_master_address)
+    .store_slice(owner)
     .end_cell();
     var msg = begin_cell()
     .store_uint(0x18,6)
@@ -86,20 +88,19 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     }
 
     if (op == op::claim_interest()){
+        ;; TO-DO add YTbalance
+        ;; TO-DO add Index Update when mint
+        ;; TO-DO add 
         int new_index = in_msg_body~load_uint(32);
+        slice ts_master_address = in_msg_body~load_msg_addr();
         int ytbalance = 1000; ;;yt balance net
-        int amount = 10000000;
+        int amount = 4000000;
         (slice owner,slice master_contract,int maturity, int index,int interest) = load_data();
-        
-        if (index != 0){
-            int d_interest = ytbalance * ((1 / index) - (1 / new_index) );
-            interest += d_interest ;
-            save_data(owner,master_contract,maturity,index,interest);
-            send_cacl_interest(interest,master_contract,amount,query_id);
-            }
-        else {
-            save_data(owner,master_contract,maturity,index,interest);
-        }
+        int d_interest = ytbalance * ((1000 / 100) - (1000 / new_index) );
+        interest += d_interest ;
+        save_data(owner,master_contract,maturity,index,interest);
+        send_cacl_interest(interest,master_contract,amount,query_id, ts_master_address, owner);
+        return();
     }
 
     throw(0xffff);
