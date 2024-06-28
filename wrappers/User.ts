@@ -1,13 +1,12 @@
 import {
     Address,
-    beginCell, Builder,
+    beginCell,
     Cell,
     Contract,
     contractAddress,
     ContractProvider,
-    Dictionary,
     Sender,
-    SendMode, Slice
+    SendMode
 } from '@ton/core';
 
 export type UserConfig = {
@@ -56,6 +55,16 @@ export class User implements Contract {
 
     async getMaturity(provider: ContractProvider) {
         const result = await provider.get('get_maturity', []);
+        return result.stack.readBigNumber();
+    }
+
+    async getIndex(provider: ContractProvider) {
+        const result = await provider.get('get_index', []);
+        return result.stack.readBigNumber();
+    }
+
+    async getInterest(provider: ContractProvider) {
+        const result = await provider.get('get_interest', []);
         return result.stack.readBigNumber();
     }
 }

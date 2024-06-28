@@ -4,7 +4,7 @@ import { User } from '../wrappers/User';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { Master } from '../wrappers/Master';
-import { assertJettonBalanceEqual, deployJettonWithWallet, generateKP, setupMaster, supplyJetton } from './helper';
+import { deployJettonWithWallet, generateKP, setupMaster, supplyJetton } from './helper';
 import { KeyPair } from 'ton-crypto';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
@@ -121,11 +121,11 @@ describe('User', () => {
     });
 
     it('should mint PT and YT and get maturity', async () => {
-        const amount: bigint = 10n;
+        const amount: bigint = 100n;
 
         const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
         const userAddress = await master.getWalletAddress(underlyingHolder.address);
-        // Master -> User Order
+
         expect(result.transactions).toHaveTransaction({
             from: master.address,
             to: userAddress,
@@ -134,7 +134,43 @@ describe('User', () => {
         });
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
-        const maturity = await user.getMaturity();
-        expect(maturity).toEqual(maturity);
+        const maturityFromContract = await user.getMaturity();
+        expect(maturityFromContract).toEqual(maturity);
+    });
+
+    it('should mint PT and YT and get index', async () => {
+        const amount: bigint = 199n;
+
+        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const userAddress = await master.getWalletAddress(underlyingHolder.address);
+
+        expect(result.transactions).toHaveTransaction({
+            from: master.address,
+            to: userAddress,
+            deploy: true,
+            success: true
+        });
+
+        const user = blockchain.openContract(User.createFromAddress(userAddress));
+        const indexFromContract = await user.getIndex();
+        expect(indexFromContract).toEqual(0n);
+    });
+
+    it('should mint PT and YT and get index', async () => {
+        const amount: bigint = 109n;
+
+        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const userAddress = await master.getWalletAddress(underlyingHolder.address);
+
+        expect(result.transactions).toHaveTransaction({
+            from: master.address,
+            to: userAddress,
+            deploy: true,
+            success: true
+        });
+
+        const user = blockchain.openContract(User.createFromAddress(userAddress));
+        const indexFromContract = await user.getIndex();
+        expect(indexFromContract).toEqual(0n);
     });
 });
