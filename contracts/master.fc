@@ -162,7 +162,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     cs~load_coins();
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
-    (_, cell user_code, _, int index, _) = load_data();
+    (_, cell user_code, int maturity, int index, _) = load_data();
 
     if (op == op::transfer_notification()) {
         int jetton_amount = in_msg_body~load_coins();
@@ -174,7 +174,6 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         int fwd_query_id = fwd_cs~load_uint(64);
         slice to_address = fwd_cs~load_msg_addr();
         fwd_cs~load_coins();
-        int maturity = fwd_cs~load_uint(32);
 
         slice user_contract_address = mint_user_contract(to_address, user_code, maturity);
 
@@ -228,8 +227,8 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 }
 
 slice get_wallet_address(slice owner_address) method_id {
-    (_, cell user_code, _, _, _) = load_data();
-    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code);
+    (_, cell user_code, int maturity, _, _) = load_data();
+    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity);
     return calculate_user_order_address(state_init);
 }
 

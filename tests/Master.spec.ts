@@ -116,7 +116,7 @@ describe('Master', () => {
     it('should mint PT and YT', async () => {
         const amount: bigint = 10n;
 
-        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter, maturity);
+        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
 
         // User -> User Jetton1 Wallet
         expect(result.transactions).toHaveTransaction({
@@ -153,17 +153,17 @@ describe('Master', () => {
             success: true
         });
 
-        const user_address = await master.getWalletAddress(underlyingHolder.address);
+        const userAddress = await master.getWalletAddress(underlyingHolder.address);
         // Master -> User Order
         expect(result.transactions).toHaveTransaction({
             from: master.address,
-            to: user_address,
+            to: userAddress,
             deploy: true,
             success: true
         });
 
-        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(user_address);
-        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(user_address);
+        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(userAddress);
+        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(userAddress);
 
         expect(result.transactions).toHaveTransaction({
             from: principleToken.minter.address,
