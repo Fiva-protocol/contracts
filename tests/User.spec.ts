@@ -4,7 +4,8 @@ import { User } from '../wrappers/User';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { Master } from '../wrappers/Master';
-import { assertJettonBalanceEqual, deployJettonWithWallet, setupMaster } from './helper';
+import { assertJettonBalanceEqual, deployJettonWithWallet, generateKP, setupMaster } from './helper';
+import { KeyPair } from 'ton-crypto';
 
 
 describe('User', () => {
@@ -12,12 +13,17 @@ describe('User', () => {
     let userCode: Cell;
     let jettonMinterCode: Cell;
     let jettonWalletCode: Cell;
+    let kp: KeyPair;
+    let index = 99n;
+    let maturity = 1n;
 
     beforeAll(async () => {
         masterCode = await compile('Master');
         userCode = await compile('User');
         jettonMinterCode = await compile('JettonMinter');
         jettonWalletCode = await compile('JettonWallet');
+
+        kp = await generateKP();
     });
 
     let blockchain: Blockchain;
@@ -31,7 +37,7 @@ describe('User', () => {
         deployer = await blockchain.treasury('deployer');
         creator = await blockchain.treasury('creator');
 
-        master = await setupMaster(blockchain, deployer, masterCode, userCode);
+        master = await setupMaster(blockchain, deployer, masterCode, userCode, maturity, index, kp.publicKey);
 
         // user = blockchain.openContract(User.createFromAddress(await master.getWalletAddress(creator.address)),);
 

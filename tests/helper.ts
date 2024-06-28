@@ -5,18 +5,25 @@ import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { Master } from '../wrappers/Master';
 import { Opcodes } from '../helpers/Opcodes';
+import { mnemonicNew, mnemonicToPrivateKey } from 'ton-crypto';
 
 export async function setupMaster(
     blockchain: Blockchain,
     deployer: SandboxContract<TreasuryContract>,
     masterCode: Cell,
-    userCode: Cell
+    userCode: Cell,
+    maturity: bigint,
+    index: bigint,
+    pubKey: Buffer
 ) {
     const master = blockchain.openContract(
         Master.createFromConfig(
             {
                 admin: deployer.address,
-                userCode: userCode
+                userCode: userCode,
+                maturity: maturity,
+                index: index,
+                pubKey: pubKey
             },
             masterCode
         )
@@ -94,9 +101,9 @@ export async function supplyJetton(
     underlyingJettonWallet: SandboxContract<JettonWallet>,
     amount: bigint,
     principleJettonMinter: SandboxContract<JettonMinter>,
-    yieldJettonMinter: SandboxContract<JettonMinter>
+    yieldJettonMinter: SandboxContract<JettonMinter>,
+    maturity: bigint
 ) {
-    console.log(yieldJettonMinter.address.toRawString(), principleJettonMinter.address.toRawString());
     return await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
             value: toNano('0.5'),
             toAddress: master.address,
@@ -108,6 +115,7 @@ export async function supplyJetton(
                 .storeUint(11, 64) // query id
                 .storeAddress(underlyingHolder.address)
                 .storeCoins(amount)
+                .storeUint(maturity, 32)
                 .storeAddress(yieldJettonMinter.address)
                 .storeAddress(principleJettonMinter.address)
                 .endCell()
@@ -120,4 +128,9 @@ export async function assertJettonBalanceEqual(blockchain: Blockchain, jettonAdd
     const jetton = blockchain.openContract(jettonWallet);
     const balance = await jetton.getBalance();
     expect(balance).toEqual(equalTo);
+}
+
+export async function generateKP() {
+    let mnemonic = await mnemonicNew();
+    return mnemonicToPrivateKey(mnemonic);
 }

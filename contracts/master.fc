@@ -9,24 +9,30 @@
 const storage_fee = 5000000; ;; 0.005 TON
 const exec_fwd_fee = 30000000;  ;; 0.03 TON
 
-(slice, cell) load_data() inline {
+(slice, cell, int, int, int) load_data() inline {
     slice ds = get_data().begin_parse();
     return (
         ds~load_msg_addr(), ;; admin_address
-        ds~load_ref() ;; user_order_code
+        ds~load_ref(), ;; user_order_code
+        ds~load_uint(32), ;; maturity
+        ds~load_uint(32), ;; index
+        ds~load_uint(256) ;; public_key
     );
 }
 
-() save_data(slice admin_address, cell user_order_code) impure inline {
+() save_data(slice admin_address, cell user_order_code, int maturity, int index, int pub_key) impure inline {
     set_data(begin_cell()
         .store_slice(admin_address)
         .store_ref(user_order_code)
+        .store_uint(maturity, 32)
+        .store_uint(index, 32)
+        .store_uint(pub_key, 256)
         .end_cell()
     );
 }
 
-(slice) mint_user_contract(slice owner_address, cell user_code) impure {
-    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code);
+(slice) mint_user_contract(slice owner_address, cell user_code, int maturity) impure {
+    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity);
     slice to_contract_address = calculate_user_order_address(state_init);
     var msg = begin_cell()
         .store_uint(0x18, 6)
@@ -131,8 +137,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         return ();
     }
 
-
-    slice sender_address = cs~load_msg_addr();
+    slice sender_addr = cs~load_msg_addr();
     cs~load_msg_addr(); ;; skip dst
     cs~load_coins(); ;; skip value
     cs~skip_bits(1); ;; skip extracurrency collection
@@ -140,7 +145,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     cs~load_coins();
     int op = in_msg_body~load_uint(32);
     in_msg_body~load_uint(64);
-    (_, cell user_code) = load_data();
+    (_, cell user_code, _, _, _) = load_data();
 
     if (op == op::transfer_notification()) {
         int jetton_amount = in_msg_body~load_coins();
@@ -151,9 +156,11 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         int fwd_op = fwd_cs~load_uint(32);
         int fwd_query_id = fwd_cs~load_uint(64);
         slice to_address = fwd_cs~load_msg_addr();
-        slice user_contract_address = mint_user_contract(to_address, user_code);
-
         fwd_cs~load_coins();
+        int maturity = fwd_cs~load_uint(32);
+
+        slice user_contract_address = mint_user_contract(to_address, user_code, maturity);
+
         (slice yt_addr, slice pt_addr) = (fwd_cs~load_msg_addr(), fwd_cs~load_msg_addr());
 
         if (fwd_op == "supply"c) {
@@ -169,10 +176,38 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     throw(0xffff);
 }
 
+() recv_external(slice in_msg) impure {
+    var signature = in_msg~load_bits(512);
+    slice tmp_in_msg = in_msg;
+    var hash = slice_hash(in_msg);
+
+    (slice admin_addr, cell user_code, int maturity, _, int pub_key) = load_data();
+    throw_unless(401, check_signature(hash, signature, pub_key));
+
+    accept_message();
+
+    tmp_in_msg~touch();
+
+    int op = in_msg~load_uint(32);
+    if (op == "update_index"c) {
+        int new_index = in_msg~load_uint(32);
+        save_data(admin_addr, user_code, maturity, new_index, pub_key);
+
+        return ();
+    }
+
+    throw(0xffffff);
+}
+
 slice get_wallet_address(slice owner_address) method_id {
-    (_, cell user_code) = load_data();
+    (_, cell user_code, _, _, _) = load_data();
     cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code);
     return calculate_user_order_address(state_init);
+}
+
+int get_index() method_id {
+    (_, _, _, int index, _) = load_data();
+    return index;
 }
 
 int get_status() method_id {

@@ -5,19 +5,26 @@ import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
-import { assertJettonBalanceEqual, deployJettonWithWallet, setupMaster, supplyJetton } from './helper';
+import { assertJettonBalanceEqual, deployJettonWithWallet, setupMaster, supplyJetton, generateKP } from './helper';
+import { KeyPair, sign } from 'ton-crypto';
+import { Opcodes } from '../helpers/Opcodes';
 
 describe('Master', () => {
     let masterCode: Cell;
     let userCode: Cell;
     let jettonMinterCode: Cell;
     let jettonWalletCode: Cell;
+    let kp: KeyPair;
+    let index = 99n;
+    let maturity = 1n;
 
     beforeAll(async () => {
         masterCode = await compile('Master');
         userCode = await compile('User');
         jettonMinterCode = await compile('JettonMinter');
         jettonWalletCode = await compile('JettonWallet');
+
+        kp = await generateKP();
     });
 
     let blockchain: Blockchain;
@@ -44,7 +51,7 @@ describe('Master', () => {
         deployer = await blockchain.treasury('deployer');
         underlyingHolder = await blockchain.treasury('underlying');
 
-        master = await setupMaster(blockchain, deployer, masterCode, userCode);
+        master = await setupMaster(blockchain, deployer, masterCode, userCode, maturity, index, kp.publicKey);
 
         underlyingAsset = await deployJettonWithWallet(
             blockchain,
@@ -109,7 +116,7 @@ describe('Master', () => {
     it('should mint PT and YT', async () => {
         const amount: bigint = 10n;
 
-        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter, maturity);
 
         // User -> User Jetton1 Wallet
         expect(result.transactions).toHaveTransaction({
@@ -176,5 +183,33 @@ describe('Master', () => {
         // await assertJettonBalanceEqual(blockchain, jetton_wallet_master, 0n);
         await assertJettonBalanceEqual(blockchain, userPrincipleTokenAddr, amount);
         await assertJettonBalanceEqual(blockchain, userYieldTokenAddr, amount);
+    });
+
+    it('should fail on wrong signature', async () => {
+        const invalidKP = await generateKP();
+
+        await expect(
+            master.sendExternalMessage(
+                {
+                    opCode: Opcodes.updateIndex,
+                    index: 300n,
+                    signFunc: (buf) => sign(buf, invalidKP.secretKey)
+                }
+            )
+        ).rejects.toThrow();
+    });
+
+    it('should update index', async () => {
+        const newIndex: bigint = 27n;
+
+        await master.sendExternalMessage(
+            {
+                opCode: Opcodes.updateIndex,
+                index: newIndex,
+                signFunc: (buf) => sign(buf, kp.secretKey)
+            }
+        );
+
+        expect(await master.getIndex()).toEqual(newIndex);
     });
 });
