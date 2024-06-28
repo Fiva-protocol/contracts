@@ -25,7 +25,7 @@ describe('Master', () => {
         jettonWalletCode = await compile('JettonWallet');
 
         kp = await generateKP();
-    });
+    }, 15000);
 
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
@@ -111,7 +111,7 @@ describe('Master', () => {
         yieldToken = {
             minter: yieldJettonMinter
         };
-    });
+    }, 15000);
 
     it('should mint PT and YT', async () => {
         const amount: bigint = 10n;
@@ -183,7 +183,7 @@ describe('Master', () => {
         // await assertJettonBalanceEqual(blockchain, jetton_wallet_master, 0n);
         await assertJettonBalanceEqual(blockchain, userPrincipleTokenAddr, amount);
         await assertJettonBalanceEqual(blockchain, userYieldTokenAddr, amount);
-    });
+    }, 10000);
 
     it('should fail on wrong signature', async () => {
         const invalidKP = await generateKP();

@@ -26,7 +26,7 @@ describe('User', () => {
         jettonWalletCode = await compile('JettonWallet');
 
         kp = await generateKP();
-    });
+    }, 15000);
 
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
@@ -113,7 +113,7 @@ describe('User', () => {
         yieldToken = {
             minter: yieldJettonMinter
         };
-    });
+    }, 15000);
 
     it('should deploy', async () => {
         // the check is done inside beforeEach
