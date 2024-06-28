@@ -7,3 +7,12 @@ int op::burn_notification() asm "0x7bdd97de PUSHINT";
 
 ;; Minter
 int op::mint() asm "21 PUSHINT";
+
+;; User
+int op::claim_interest() asm "777 PUSHINT";
+int op::send_interest() asm "779 PUSHINT";
+
+
+;; Master
+
+int op::send_claim_interest() asm "778 PUSHINT";
