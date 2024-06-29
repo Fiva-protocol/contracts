@@ -153,7 +153,7 @@ describe('User', () => {
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
         const indexFromContract = await user.getIndex();
-        expect(indexFromContract).toEqual(0n);
+        expect(indexFromContract).toEqual(99n);
     });
 
     it('should mint PT and YT and get index', async () => {
@@ -171,7 +171,7 @@ describe('User', () => {
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
         const indexFromContract = await user.getIndex();
-        expect(indexFromContract).toEqual(0n);
+        expect(indexFromContract).toEqual(99n);
     });
 
     

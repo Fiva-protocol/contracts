@@ -121,7 +121,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     send_raw_message(msg, 64);
 }
 
-() send_interest(int interest, slice ts_master_address, int query_id, slice to_addr, int amount, int fwd_amount ) impure inline {
+() send_interest(int interest, slice ts_master_address, int query_id, slice to_addr, int fwd_amount ) impure inline {
     var msg_body = begin_cell()
         .store_uint(op::transfer(), 32)
         .store_uint(query_id, 64)
@@ -131,22 +131,41 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         .store_uint(0, 1)
         .store_coins(fwd_amount)
         .store_uint(0, 1)
-        .store_ref(begin_cell()
-            .store_uint(777, 32)
-            .store_uint(query_id, 64)
-            .store_coins(interest)
-            .end_cell())
+        ;; .store_ref(begin_cell()
+        ;;     .store_uint(777, 32)
+        ;;     .store_uint(query_id, 64)
+        ;;     .store_coins(interest)
+        ;;     .end_cell())
         .end_cell();
 
     var msg = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(ts_master_address)  ;; tsTON Wallet Master address
-        .store_coins(amount) 
+        .store_coins(0) ;; 0 because 64 mode 
         .store_uint(1, 107)
         .store_ref(msg_body)
         .end_cell();
 
     send_raw_message(msg, 64); ;; revert on errors
+}
+
+() send_ytbalance_index_to_user(slice user_contract_addr, int query_id, int yt_amount, int index) impure inline {
+        var msg_body = begin_cell()
+        .store_uint(op::send_ytbalance_index(), 32)
+        .store_uint(query_id, 64)
+        .store_coins(yt_amount)
+        .store_uint(index,32)
+        .end_cell();
+
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(user_contract_addr)  ;; user contract
+        .store_coins(exec_fwd_fee) 
+        .store_uint(1, 107)
+        .store_ref(msg_body)
+        .end_cell();
+
+    send_raw_message(msg, 0); 
 }
 
 () recv_internal(int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -186,10 +205,12 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         slice user_contract_address = mint_user_contract(to_address, user_code, maturity);
 
         (slice yt_addr, slice pt_addr) = (fwd_cs~load_msg_addr(), fwd_cs~load_msg_addr());
-
+        
+        int mint_amount = jetton_amount * index / 1000; ;; mint amount should be adjusted to index
         if (fwd_op == "supply"c) {
-            mint_principle_token(pt_addr, user_contract_address, exec_fwd_fee, jetton_amount, fwd_query_id);
-            mint_yield_token(yt_addr, user_contract_address, exec_fwd_fee, jetton_amount, fwd_query_id);
+            mint_principle_token(pt_addr, user_contract_address, exec_fwd_fee, mint_amount, fwd_query_id);
+            mint_yield_token(yt_addr, user_contract_address, exec_fwd_fee, mint_amount, fwd_query_id);
+            send_ytbalance_index_to_user(user_contract_address, query_id, mint_amount, index);
         }
         ;; TODO: send TONs left to the user back
 
@@ -199,7 +220,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     if (op == op::send_claim_interest()){
         
         int amount = in_msg_body~load_coins();
-        slice ts_master_address = in_msg_body~load_msg_addr(); ;;maybe add to storage?
+        slice ts_master_address = in_msg_body~load_msg_addr(); 
         cell state_init = calculate_user_order_state_init(sender_addr, my_address(), user_code, maturity);
         slice to_contract_address = calculate_user_order_address(state_init);
         
@@ -208,12 +229,11 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
      }
 
     if (op == op::send_interest()){
-        int interest = in_msg_body~load_uint(32);
+        int interest = in_msg_body~load_uint(32);       
+        int send_ts = (interest * 1000) / index ; 
         slice ts_master_address = in_msg_body~load_msg_addr();
         slice to_addr = in_msg_body~load_msg_addr();  
-        int amount = 3500000;
-        int fwd_amount = 1000000;
-        send_interest(interest,ts_master_address,query_id,to_addr,amount,fwd_amount);
+        send_interest(send_ts,ts_master_address,query_id,to_addr,exec_fwd_fee);
         return ();
     }
 

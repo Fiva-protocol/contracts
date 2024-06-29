@@ -11,7 +11,7 @@ int op::mint() asm "21 PUSHINT";
 ;; User
 int op::claim_interest() asm "777 PUSHINT";
 int op::send_interest() asm "779 PUSHINT";
-
+int op::send_ytbalance_index() asm "780 PUSHINT";
 
 ;; Master
 

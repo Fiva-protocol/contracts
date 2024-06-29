@@ -16,7 +16,7 @@ describe('Master', () => {
     let jettonMinterCode: Cell;
     let jettonWalletCode: Cell;
     let kp: KeyPair;
-    let index = 99n;
+    let index = 1000n;
     let maturity = 1000n;
 
     beforeAll(async () => {
@@ -215,10 +215,10 @@ describe('Master', () => {
     });
 
     it('should claim rewards', async () => {
-        const amount: bigint = 100n;
-        await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const jettonAmount: bigint = 100n;
+        await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, jettonAmount, principleToken.minter, yieldToken.minter);
         const userAddress = await master.getWalletAddress(underlyingHolder.address);
-        const newIndex: bigint = 110n;
+        const newIndex: bigint = 1100n;
 
         await underlyingAsset.minter.sendMint(deployer.getSender(), {
             toAddress: master.address,
@@ -280,9 +280,79 @@ describe('Master', () => {
 
         const jettonWallet = JettonWallet.createFromAddress(userTsAddress);
         const jetton = blockchain.openContract(jettonWallet);
-        const data = await jetton.getWalletData();
-        console.log ("Data:", data )
+        const balance = await jetton.getBalance();
+        expect(balance).toEqual(908n);
+    });
+
+    it('calculate balance correct when Initial Index is not 1000', async () => {
+        const jettonAmount: bigint = 100n;
+        const newIndex: bigint = 1100n;
+        const amount: bigint = 110n;
+
+        const userAddress = await master.getWalletAddress(underlyingHolder.address);
+        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(userAddress);
+        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(userAddress);
+
+        await master.sendExternalMessage(
+            {
+                opCode: Opcodes.updateIndex,
+                index: newIndex,
+                signFunc: (buf) => sign(buf, kp.secretKey)
+            }
+        );
+
+        await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, jettonAmount, principleToken.minter, yieldToken.minter);    
+        await assertJettonBalanceEqual(blockchain, userPrincipleTokenAddr, amount);
+        await assertJettonBalanceEqual(blockchain, userYieldTokenAddr, amount);
         
-        // expect(balance).toEqual(amount2);
+
+    });
+
+    it('calculate interest correct when Initial Index is not 1000', async () => {
+        const jettonAmount: bigint = 100n;
+        const newIndex: bigint = 1100n;
+        const interestIndex: bigint = 1300n;
+
+
+        await underlyingAsset.minter.sendMint(deployer.getSender(), {
+            toAddress: master.address,
+            jettonAmount: 10000n,
+            amount: toNano('0.05'),
+            queryId: Date.now(),
+            value: toNano('0.2')
+        });
+
+        await master.sendExternalMessage(
+            {
+                opCode: Opcodes.updateIndex,
+                index: newIndex,
+                signFunc: (buf) => sign(buf, kp.secretKey)
+            }
+        );
+
+        await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, jettonAmount, principleToken.minter, yieldToken.minter);    
+
+        await master.sendExternalMessage(
+            {
+                opCode: Opcodes.updateIndex,
+                index: interestIndex,
+                signFunc: (buf) => sign(buf, kp.secretKey)
+            }
+        );
+
+        const tsMasterAddress = await underlyingAsset.minter.getWalletAddress(master.address);
+        const result = await master.sendClaim(
+            underlyingHolder.getSender(),
+            {
+                queryId: 100,
+                amount: toNano('0.5'),
+                tsMasterAddress: tsMasterAddress
+            }
+        )
+        const userTsAddress = await underlyingAsset.minter.getWalletAddress(underlyingHolder.address)
+        const jettonWallet = JettonWallet.createFromAddress(userTsAddress);
+        const jetton = blockchain.openContract(jettonWallet);
+        const balance = await jetton.getBalance();
+        expect(balance).toEqual(911n);
     });
 });

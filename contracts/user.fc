@@ -12,31 +12,34 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
 ;; maturity
 ;; index
 ;; interest
-(slice, slice, int, int, int) load_data() inline {
+;; ytbalance
+(slice, slice, int, int, int, int) load_data() inline {
     slice ds = get_data().begin_parse();
     return (
         ds~load_msg_addr(),
         ds~load_msg_addr(),
         ds~load_uint(32),
         ds~load_uint(32),
-        ds~load_uint(32)
+        ds~load_uint(32),
+        ds~load_coins()
     );
 }
 
-() save_data(slice owner, slice master_contract, int maturity, int index, int interest) impure inline {
+() save_data(slice owner, slice master_contract, int maturity, int index, int interest, int yt_balance) impure inline {
     set_data(begin_cell()
         .store_slice(owner)
         .store_slice(master_contract)
         .store_uint(maturity, 32)
         .store_uint(index, 32)
         .store_uint(interest, 32)
+        .store_coins(yt_balance)
         .end_cell());
 }
 
 () on_bounce(slice in_msg_body) impure {
 }
 
-() send_cacl_interest (int interest, slice master_address, int amount, int query_id, slice ts_master_address, slice owner) impure {
+() send_cacl_interest (int interest, slice master_address, int query_id, slice ts_master_address, slice owner) impure {
     var msg_body = begin_cell()
     .store_uint(op::send_interest(),32)
     .store_uint(query_id, 64)
@@ -47,7 +50,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     var msg = begin_cell()
     .store_uint(0x18,6)
     .store_slice(master_address)
-    .store_coins(amount)
+    .store_coins(0) ;; 0 because 64 mode, will sent everything that left
     .store_uint(1,107)
     .store_ref(msg_body)
     .end_cell();
@@ -88,40 +91,49 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     }
 
     if (op == op::claim_interest()){
-        ;; TO-DO add YTbalance
-        ;; TO-DO add Index Update when mint
-        ;; TO-DO add 
         int new_index = in_msg_body~load_uint(32);
         slice ts_master_address = in_msg_body~load_msg_addr();
-        int ytbalance = 1000; ;;yt balance net
-        int amount = 4000000;
-        (slice owner,slice master_contract,int maturity, int index,int interest) = load_data();
-        int d_interest = ytbalance * ((1000 / 100) - (1000 / new_index) );
+        (slice owner,slice master_contract,int maturity, int index,int interest, int yt_balance) = load_data();
+        int d_interest = yt_balance * ((1000000 / index) - (1000000 / new_index) );
         interest += d_interest ;
-        save_data(owner,master_contract,maturity,index,interest);
-        send_cacl_interest(interest,master_contract,amount,query_id, ts_master_address, owner);
+        int new_interest = interest / 1000;
+        save_data(owner,master_contract,maturity,index,new_interest, yt_balance);
+        send_cacl_interest(new_interest,master_contract,query_id, ts_master_address, owner);
         return();
     }
 
+    if (op == op::send_ytbalance_index()){
+        (slice owner, slice master_contract, int maturity, int index, int interest, int yt_balance) = load_data();
+        int yt_mint = in_msg_body~load_coins();
+        yt_balance += yt_mint;
+        int new_index = in_msg_body~load_uint(32);
+        save_data(owner,master_contract,maturity,new_index,interest, yt_balance);
+        return ();
+    }
     throw(0xffff);
 }
 
 slice get_master_addr() method_id {
-    (_, slice master_addr, _, _, _) = load_data();
+    (_, slice master_addr, _, _, _, _) = load_data();
     return master_addr;
 }
 
 int get_maturity() method_id {
-    (_, _, int maturity, _, _) = load_data();
+    (_, _, int maturity, _, _,_) = load_data();
     return maturity;
 }
 
 int get_index() method_id {
-    (_, _, _, int index, _) = load_data();
+    (_, _, _, int index, _,_) = load_data();
     return index;
 }
 
 int get_interest() method_id {
-    (_, _, _, _, int interest) = load_data();
+    (_, _, _, _, int interest, _) = load_data();
     return interest;
+}
+
+int get_yt_balance() method_id {
+    (_, _, _, _, _, int yt_balance) = load_data();
+    return yt_balance;
 }
