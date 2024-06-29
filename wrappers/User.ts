@@ -56,6 +56,7 @@ export class User implements Contract {
             value: bigint;
             queryId: number;
             jettonAmount: bigint,
+            masterWalletAddr: Address,
             principleTokenAddr: Address,
             yieldTokenAddr: Address,
             fwdPayload: Cell;
@@ -73,7 +74,7 @@ export class User implements Contract {
                     .storeAddress(opts.principleTokenAddr)
                     .storeAddress(opts.yieldTokenAddr)
                     .storeUint(0, 1)
-                    .storeRef(opts.fwdPayload)
+                    .storeRef(beginCell().storeAddress(opts.masterWalletAddr).endCell())
                     .endCell()
             }
         );

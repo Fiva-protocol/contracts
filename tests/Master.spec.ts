@@ -51,8 +51,6 @@ describe('Master', () => {
         deployer = await blockchain.treasury('deployer');
         underlyingHolder = await blockchain.treasury('underlying');
 
-        master = await setupMaster(blockchain, deployer, masterCode, userCode, maturity, index, kp.publicKey);
-
         underlyingAsset = await deployJettonWithWallet(
             blockchain,
             deployer,
@@ -61,6 +59,8 @@ describe('Master', () => {
             underlyingHolder.address,
             1000n
         );
+
+        master = await setupMaster(blockchain, deployer, masterCode, userCode, underlyingAsset.minter, undefined, maturity, index, kp.publicKey);
 
         const principleRandomSeed = Math.floor(Math.random() * 10000);
         const principleJettonMinter = blockchain.openContract(
@@ -113,10 +113,14 @@ describe('Master', () => {
         };
     });
 
+    it('should deploy', () => {
+
+    });
+
     it('should mint PT and YT', async () => {
         const amount: bigint = 10n;
 
-        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.minter, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
 
         // User -> User Jetton1 Wallet
         expect(result.transactions).toHaveTransaction({
@@ -164,6 +168,7 @@ describe('Master', () => {
 
         const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(userAddress);
         const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(userAddress);
+        const masterUnderlyingTokenAddr = await underlyingAsset.minter.getWalletAddress(master.address);
 
         expect(result.transactions).toHaveTransaction({
             from: principleToken.minter.address,
@@ -180,9 +185,15 @@ describe('Master', () => {
         });
 
         // Jettons are in User Wallet
-        // await assertJettonBalanceEqual(blockchain, jetton_wallet_master, 0n);
         await assertJettonBalanceEqual(blockchain, userPrincipleTokenAddr, amount);
         await assertJettonBalanceEqual(blockchain, userYieldTokenAddr, amount);
+        await assertJettonBalanceEqual(blockchain, masterUnderlyingTokenAddr, amount);
+
+        const underAssetMinterAddr = await master.getUnderlyingAssetMinterAddress();
+        expect(underAssetMinterAddr.toRawString()).toEqual(underlyingAsset.minter.address.toRawString());
+
+        const underAssetWalletAddr = await master.getUnderlyingAssetWalletAddress();
+        expect(underAssetWalletAddr).toEqual(null);
     });
 
     it('should fail on wrong signature', async () => {
@@ -211,5 +222,31 @@ describe('Master', () => {
         );
 
         expect(await master.getIndex()).toEqual(newIndex);
+    });
+
+    it('should update master wallet address', async () => {
+        const result = await master.sendUpdateWalletAddr(deployer.getSender(), toNano('0.1'), { queryId: 100 });
+
+        expect(result.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: master.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: master.address,
+            to: underlyingAsset.minter.address,
+            success: true
+        });
+
+        expect(result.transactions).toHaveTransaction({
+            from: underlyingAsset.minter.address,
+            to: master.address,
+            success: true
+        });
+
+        const expUnderAssetWalletAddr = await underlyingAsset.minter.getWalletAddress(master.address);
+        const underAssetWalletAddr = await master.getUnderlyingAssetWalletAddress();
+        expect(underAssetWalletAddr?.toRawString()).toEqual(expUnderAssetWalletAddr.toRawString());
     });
 });

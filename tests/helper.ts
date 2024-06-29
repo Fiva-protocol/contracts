@@ -12,6 +12,8 @@ export async function setupMaster(
     deployer: SandboxContract<TreasuryContract>,
     masterCode: Cell,
     userCode: Cell,
+    underlyingAssetMinter: SandboxContract<JettonMinter>,
+    underlyingAssetWallet: SandboxContract<JettonWallet> | undefined,
     maturity: bigint,
     index: bigint,
     pubKey: Buffer
@@ -21,6 +23,8 @@ export async function setupMaster(
             {
                 admin: deployer.address,
                 userCode: userCode,
+                underlyingAssetMinterAddr: underlyingAssetMinter.address,
+                underlyingAssetWalletAddr: underlyingAssetWallet?.address,
                 maturity: maturity,
                 index: index,
                 pubKey: pubKey
@@ -98,10 +102,11 @@ export async function deployJettonWithWallet(
 export async function supplyJetton(
     underlyingHolder: SandboxContract<TreasuryContract>,
     master: SandboxContract<Master>,
+    underlyingJettonMinter: SandboxContract<JettonMinter>,
     underlyingJettonWallet: SandboxContract<JettonWallet>,
     amount: bigint,
     principleJettonMinter: SandboxContract<JettonMinter>,
-    yieldJettonMinter: SandboxContract<JettonMinter>,
+    yieldJettonMinter: SandboxContract<JettonMinter>
 ) {
     return await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
             value: toNano('0.5'),

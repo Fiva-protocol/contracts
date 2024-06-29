@@ -7,3 +7,6 @@ int op::burn_notification() asm "0x7bdd97de PUSHINT";
 
 ;; Minter
 int op::mint() asm "21 PUSHINT";
+
+int op::provide_wallet_address() asm "0x2c76b973 PUSHINT";
+int op::take_wallet_address() asm "0xd1735400 PUSHINT";
