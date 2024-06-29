@@ -14,5 +14,6 @@ int op::send_interest() asm "779 PUSHINT";
 int op::send_ytbalance_index() asm "780 PUSHINT";
 
 ;; Master
-
 int op::send_claim_interest() asm "778 PUSHINT";
+int op::provide_wallet_address() asm "0x2c76b973 PUSHINT";
+int op::take_wallet_address() asm "0xd1735400 PUSHINT";

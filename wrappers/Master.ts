@@ -1,9 +1,12 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 import { TupleItemSlice } from '@ton/core/dist/tuple/tuple';
+import { Opcodes } from '../helpers/Opcodes';
 
 export type MasterConfig = {
     admin: Address;
     userCode: Cell;
+    underlyingAssetMinterAddr: Address;
+    underlyingAssetWalletAddr: Address | undefined;
     maturity: bigint;
     index: bigint;
     pubKey: Buffer;
@@ -13,9 +16,13 @@ export function masterConfigToCell(config: MasterConfig): Cell {
     return beginCell()
         .storeAddress(config.admin)
         .storeRef(config.userCode)
-        .storeUint(config.maturity, 32)
-        .storeUint(config.index, 32)
-        .storeBuffer(config.pubKey)
+        .storeAddress(config.underlyingAssetMinterAddr)
+        .storeAddress(config.underlyingAssetWalletAddr)
+        .storeRef(beginCell()
+            .storeUint(config.maturity, 32)
+            .storeUint(config.index, 32)
+            .storeBuffer(config.pubKey)
+            .endCell())
         .endCell();
 }
 
@@ -48,7 +55,7 @@ export class Master implements Contract {
             amount: bigint;
             queryId: number;
             tsMasterAddress: Address;
-        },
+        }
     ) {
         const result = await provider.internal(via, {
             value: opts.amount,
@@ -58,26 +65,23 @@ export class Master implements Contract {
                 .storeUint(opts.queryId, 64)
                 .storeCoins(opts.amount)
                 .storeAddress(opts.tsMasterAddress)
-                .endCell(),
+                .endCell()
         });
-    
+
         return result;
     }
 
-    async getWalletAddress(provider: ContractProvider, address: Address) {
-        const result = await provider.get('get_wallet_address', [
-            {
-                type: 'slice',
-                cell: beginCell().storeAddress(address).endCell()
-            } as TupleItemSlice
-        ]);
-
-        return result.stack.readAddress();
-    }
-
-    async getIndex(provider: ContractProvider) {
-        const result = await provider.get('get_index', []);
-        return result.stack.readBigNumber();
+    async sendUpdateWalletAddr(provider: ContractProvider, via: Sender, value: bigint, opts: {
+        queryId: number;
+    }) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+                .storeUint(Opcodes.updateMasterWalletAddr, 32)
+                .storeUint(opts.queryId, 64)
+                .endCell()
+        });
     }
 
     async sendExternalMessage(
@@ -101,5 +105,31 @@ export class Master implements Contract {
                 .storeSlice(msgToSign.asSlice())
                 .endCell()
         );
+    }
+
+    async getWalletAddress(provider: ContractProvider, address: Address) {
+        const result = await provider.get('get_wallet_address', [
+            {
+                type: 'slice',
+                cell: beginCell().storeAddress(address).endCell()
+            } as TupleItemSlice
+        ]);
+
+        return result.stack.readAddress();
+    }
+
+    async getUnderlyingAssetMinterAddress(provider: ContractProvider) {
+        const result = await provider.get('get_underlying_asset_minter_addr', []);
+        return result.stack.readAddress();
+    }
+
+    async getUnderlyingAssetWalletAddress(provider: ContractProvider) {
+        const result = await provider.get('get_underlying_asset_wallet_addr', []);
+        return result.stack.readAddressOpt();
+    }
+
+    async getIndex(provider: ContractProvider) {
+        const result = await provider.get('get_index', []);
+        return result.stack.readBigNumber();
     }
 }
