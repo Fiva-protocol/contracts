@@ -8,14 +8,17 @@ export async function run(provider: NetworkProvider) {
     const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); // Added Dedust Factory address
     const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); //https://mainnet-v4.tonhubapi.com
     const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); //changed to testnet
-    const TON = Asset.native();
     // Address of a new jetton
-    const YTAddress = Address.parse('EQAAfs9rz_XkIcM-Cu4dxSy-fXTeZPHjKXQFsDHQpXjeMV7X');
+    const tsTONAddress = Address.parse('kQCwR07mEDg22t_TYI1oXrb5lRkRUBtmJSjpKGdw_TL2B4yf');
+    const tsTON = Asset.jetton(tsTONAddress);
+
+    const YTAddress = Address.parse('EQDsmCkmupqZ9mKad3BMQg-LEI5Br5PV0pBZvAH11_Du-xcW');
     const YT = Asset.jetton(YTAddress);
-    const pool = tonClient.open(await factory.getPool(PoolType.VOLATILE, [TON, YT]));
+
+    const pool = tonClient.open(await factory.getPool(PoolType.VOLATILE, [tsTON, YT]));
     const lpWallet = tonClient.open(await pool.getWallet(provider.sender().address!));
 
-    await lpWallet.sendBurn(provider.sender(), toNano('0.5'), {
+    await lpWallet.sendBurn(provider.sender(), toNano('2'), {
     amount: await lpWallet.getBalance(),
     });
 };

@@ -14,7 +14,7 @@ export async function run(provider: NetworkProvider, args: string[]) {
     const jetton = provider.open(
         JettonMinter.createFromConfig(
             {
-                adminAddress: Address.parse('EQCnF65lKoXuXxq4XWDVT8OHA6C4XUsrGYjgkCsBpBJKgL51'),
+                adminAddress: Address.parse('EQAHmEAgPST8XV4GN6r6E4NesuLs7lDbzsSW1ougMxItut9S'),
                 content: jettonContentToCell({ type: 1, uri: contentUrl }),
                 jettonWalletCode: await compile('JettonWallet'),
             },
