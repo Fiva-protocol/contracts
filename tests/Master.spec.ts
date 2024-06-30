@@ -166,8 +166,8 @@ describe('Master', () => {
             success: true
         });
 
-        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(userAddress);
-        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(userAddress);
+        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(underlyingHolder.address);
+        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(underlyingHolder.address);
         const masterUnderlyingTokenAddr = await underlyingAsset.minter.getWalletAddress(master.address);
 
         expect(result.transactions).toHaveTransaction({
@@ -300,8 +300,8 @@ describe('Master', () => {
         const amount: bigint = 110n;
 
         const userAddress = await master.getWalletAddress(underlyingHolder.address);
-        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(userAddress);
-        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(userAddress);
+        const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(underlyingHolder.address);
+        const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(underlyingHolder.address);
 
         await master.sendExternalMessage(
             {

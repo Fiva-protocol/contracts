@@ -269,8 +269,8 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
 
         int mint_amount = jetton_amount * index / 1000; ;; mint amount should be adjusted to index
         if (fwd_op == "supply"c) {
-            mint_principle_token(pt_addr, user_contract_address, exec_fwd_fee, mint_amount, fwd_query_id);
-            mint_yield_token(yt_addr, user_contract_address, exec_fwd_fee, mint_amount, fwd_query_id);
+            mint_principle_token(pt_addr, to_address, exec_fwd_fee, mint_amount, fwd_query_id);
+            mint_yield_token(yt_addr, to_address, exec_fwd_fee, mint_amount, fwd_query_id);
             send_ytbalance_index_to_user(user_contract_address, query_id, mint_amount, index);
             save_data(admin_addr, user_code, underlying_asset_addr, underlying_master_wallet_addr, maturity, index, pub_key);
         }
@@ -322,7 +322,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         slice user_addr = in_msg_body~load_msg_addr();
         slice master_wallet_addr = in_msg_body~load_msg_addr();
 
-        int redeam_res = jetton_amount / index;
+        int redeam_res = jetton_amount / index * 1000;
 
         redeem(master_wallet_addr, query_id, redeam_res, user_addr);
 
