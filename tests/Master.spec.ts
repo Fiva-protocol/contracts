@@ -111,10 +111,32 @@ describe('Master', () => {
         yieldToken = {
             minter: yieldJettonMinter
         };
+
+        await master.sendMinderAddr(
+            {
+                opCode: Opcodes.setPTMinderAddr,
+                minderAddr: principleToken.minter.address,
+                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
+            }
+        );
+
+        await master.sendMinderAddr(
+            {
+                opCode: Opcodes.setYTMinderAddr,
+                minderAddr: yieldToken.minter.address,
+                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
+            }
+        );
     }, 15000);
 
     it('should deploy', () => {
 
+    });
+
+    it('update token addresses', async () => {
+        const result = await master.getPTAndYTMinderAddresses();
+        expect(result.pt.toRawString()).toEqual(principleToken.minter.address.toRawString());
+        expect(result.yt.toRawString()).toEqual(yieldToken.minter.address.toRawString());
     });
 
     it('should mint PT and YT', async () => {
@@ -200,7 +222,7 @@ describe('Master', () => {
         const invalidKP = await generateKP();
 
         await expect(
-            master.sendExternalMessage(
+            master.sendUpdateIndex(
                 {
                     opCode: Opcodes.updateIndex,
                     index: 300n,
@@ -213,7 +235,7 @@ describe('Master', () => {
     it('should update index', async () => {
         const newIndex: bigint = 27n;
 
-        await master.sendExternalMessage(
+        await master.sendUpdateIndex(
             {
                 opCode: Opcodes.updateIndex,
                 index: newIndex,
@@ -238,7 +260,7 @@ describe('Master', () => {
             value: toNano('0.2')
         });
 
-        await master.sendExternalMessage(
+        await master.sendUpdateIndex(
             {
                 opCode: Opcodes.updateIndex,
                 index: newIndex,
@@ -303,7 +325,7 @@ describe('Master', () => {
         const userPrincipleTokenAddr = await principleToken.minter.getWalletAddress(underlyingHolder.address);
         const userYieldTokenAddr = await yieldToken.minter.getWalletAddress(underlyingHolder.address);
 
-        await master.sendExternalMessage(
+        await master.sendUpdateIndex(
             {
                 opCode: Opcodes.updateIndex,
                 index: newIndex,
@@ -314,8 +336,6 @@ describe('Master', () => {
         await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, jettonAmount, principleToken.minter, yieldToken.minter);
         await assertJettonBalanceEqual(blockchain, userPrincipleTokenAddr, amount);
         await assertJettonBalanceEqual(blockchain, userYieldTokenAddr, amount);
-
-
     });
 
     it('calculate interest correct when Initial Index is not 1000', async () => {
@@ -332,7 +352,7 @@ describe('Master', () => {
             value: toNano('0.2')
         });
 
-        await master.sendExternalMessage(
+        await master.sendUpdateIndex(
             {
                 opCode: Opcodes.updateIndex,
                 index: newIndex,
@@ -342,7 +362,7 @@ describe('Master', () => {
 
         await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, jettonAmount, principleToken.minter, yieldToken.minter);
 
-        await master.sendExternalMessage(
+        await master.sendUpdateIndex(
             {
                 opCode: Opcodes.updateIndex,
                 index: interestIndex,

@@ -9,18 +9,19 @@
 const storage_fee = 5000000; ;; 0.005 TON
 const exec_fwd_fee = 30000000;  ;; 0.03 TON
 
-(slice, cell, slice, slice, cell) load_data() inline {
+(slice, cell, slice, slice, cell, cell) load_data() inline {
     slice ds = get_data().begin_parse();
     return (
         ds~load_msg_addr(), ;; admin_address
         ds~load_ref(), ;; user_code
         ds~load_msg_addr(), ;; underlying_asset_minter_addr
         ds~load_msg_addr(), ;; underlying_asset_master_wallet_addr
-        ds~load_ref() ;; meta data
+        ds~load_ref(), ;; meta data
+        ds~load_ref() ;; tokens data
     );
 }
 
-() save_data(slice admin_address, cell user_order_code, slice underlying_asset_addr, slice underlying_master_wallet_addr, int maturity, int index, int pub_key) impure inline {
+() save_data(slice admin_address, cell user_order_code, slice underlying_asset_addr, slice underlying_master_wallet_addr, int maturity, int index, int pub_key, cell tokens_data) impure inline {
     var meta_data = begin_cell()
         .store_uint(maturity, 32)
         .store_uint(index, 32)
@@ -33,6 +34,7 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         .store_slice(underlying_asset_addr)
         .store_slice(underlying_master_wallet_addr)
         .store_ref(meta_data)
+        .store_ref(tokens_data)
         .end_cell()
     );
 }
@@ -42,8 +44,13 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     return (cs~load_uint(32), cs~load_uint(32), cs~load_uint(256));
 }
 
-slice mint_user_contract(slice owner_address, cell user_code, int maturity) impure {
-    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity);
+(slice, slice) load_tokens_data(cell data) inline {
+    slice cs = data.begin_parse();
+    return (cs~load_msg_addr(), cs~load_msg_addr());
+}
+
+slice mint_user_contract(slice owner_address, cell user_code, int maturity, slice pt_minder_addr, yt_minter_addr) impure {
+    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity, pt_minder_addr, yt_minter_addr);
     slice to_contract_address = calculate_user_order_address(state_init);
     var msg = begin_cell()
         .store_uint(0x18, 6)
@@ -53,7 +60,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_ref(state_init)
         .store_ref(begin_cell().end_cell())
         .end_cell();
-    send_raw_message(msg, 0); 
+    send_raw_message(msg, 1); ;; todo check
     return to_contract_address;
 }
 
@@ -82,7 +89,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_ref(msg_body_pt)
         .end_cell();
 
-    send_raw_message(msg_pt, 0); 
+    send_raw_message(msg_pt, 0);
 }
 
 () mint_yield_token(slice yt_addr, slice to_addr, int amount, int jetton_amount, int query_id) impure inline {
@@ -105,12 +112,12 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     var msg_yt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(yt_addr)
-        .store_coins(amount) 
+        .store_coins(amount)
         .store_uint(1, 107)
         .store_ref(msg_body_yt)
         .end_cell();
 
-    send_raw_message(msg_yt, 0); 
+    send_raw_message(msg_yt, 0);
 }
 
 () claim_interest(int amount, int query_id, int index, slice user_contract_addr, slice ts_master_address) impure inline {
@@ -143,12 +150,12 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     var msg_yt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(underlying_asset_addr)
-        .store_coins(0) 
+        .store_coins(0)
         .store_uint(1, 107)
         .store_ref(msg_body_yt)
         .end_cell();
 
-    send_raw_message(msg_yt, 64); 
+    send_raw_message(msg_yt, 64);
 }
 
 () redeem(slice ts_master_address, int query_id, int redeem_amount, slice to_addr) impure inline {
@@ -199,7 +206,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_ref(msg_body)
         .end_cell();
 
-    send_raw_message(msg, 64); 
+    send_raw_message(msg, 64);
 }
 
 () send_ytbalance_index_to_user(slice user_contract_addr, int query_id, int yt_amount, int index) impure inline {
@@ -243,9 +250,12 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     cs~load_coins();
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
-    (slice admin_addr, cell user_code, slice underlying_asset_addr, slice underlying_master_wallet_addr, cell meta) = load_data();
+    (slice admin_addr, cell user_code, slice underlying_asset_addr, slice underlying_master_wallet_addr, cell meta, cell tokens_data) = load_data();
 
     (int maturity, int index, int pub_key) = load_meta_data(meta);
+    slice tokens = tokens_data.begin_parse();
+    slice pt_minter_addr = tokens~load_msg_addr();
+    slice yt_minter_addr = tokens~load_msg_addr();
 
     if (op == op::transfer_notification()) {
         int jetton_amount = in_msg_body~load_coins();
@@ -258,8 +268,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         slice to_address = fwd_cs~load_msg_addr();
         fwd_cs~load_coins();
 
-        slice user_contract_address = mint_user_contract(to_address, user_code, maturity);
-
+        slice user_contract_address = mint_user_contract(to_address, user_code, maturity, pt_minter_addr, yt_minter_addr);
         (slice yt_addr, slice pt_addr) = (fwd_cs~load_msg_addr(), fwd_cs~load_msg_addr());
 
         int mint_amount = jetton_amount * index / 1000; ;; mint amount should be adjusted to index
@@ -267,7 +276,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
             mint_principle_token(pt_addr, to_address, exec_fwd_fee, mint_amount, fwd_query_id);
             mint_yield_token(yt_addr, to_address, exec_fwd_fee, mint_amount, fwd_query_id);
             send_ytbalance_index_to_user(user_contract_address, query_id, mint_amount, index);
-            save_data(admin_addr, user_code, underlying_asset_addr, underlying_master_wallet_addr, maturity, index, pub_key);
+            save_data(admin_addr, user_code, underlying_asset_addr, underlying_master_wallet_addr, maturity, index, pub_key, tokens_data);
         }
 
         ;; TODO: send TONs left to the user back
@@ -276,10 +285,9 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     }
 
     if (op == op::send_claim_interest()) {
-
         int amount = in_msg_body~load_coins();
         slice ts_master_address = in_msg_body~load_msg_addr();
-        cell state_init = calculate_user_order_state_init(sender_addr, my_address(), user_code, maturity);
+        cell state_init = calculate_user_order_state_init(sender_addr, my_address(), user_code, maturity, pt_minter_addr, yt_minter_addr);
         slice to_contract_address = calculate_user_order_address(state_init);
 
         claim_interest(amount, query_id, index, to_contract_address, ts_master_address);
@@ -306,20 +314,18 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     if (op == op::take_wallet_address()) {
         slice new_underlyint_asset_wallet_addr = in_msg_body~load_msg_addr();
 
-        save_data(admin_addr, user_code, underlying_asset_addr, new_underlyint_asset_wallet_addr, maturity, index, pub_key);
+        save_data(admin_addr, user_code, underlying_asset_addr, new_underlyint_asset_wallet_addr, maturity, index, pub_key, begin_cell().end_cell());
 
         return ();
     }
 
     if (op == "redeem_notification"c) {
-        in_msg_body~load_uint(32);
         int jetton_amount = in_msg_body~load_coins();
         slice user_addr = in_msg_body~load_msg_addr();
-        slice master_wallet_addr = in_msg_body~load_msg_addr();
 
         int redeam_res = jetton_amount / index * 1000;
 
-        redeem(master_wallet_addr, query_id, redeam_res, user_addr);
+        redeem(user_addr, query_id, redeam_res, user_addr);
 
         return ();
     }
@@ -332,8 +338,8 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     slice tmp_in_msg = in_msg;
     var hash = slice_hash(in_msg);
 
-    (slice admin_addr, cell user_code, slice underlying_asset_addr, slice underlying_asset_master_wallet_addr, cell meta) = load_data();
-    (int maturity, _, int pub_key) = load_meta_data(meta);
+    (slice admin_addr, cell user_code, slice underlying_asset_addr, slice underlying_asset_master_wallet_addr, cell meta, cell tokens_data) = load_data();
+    (int maturity, int index, int pub_key) = load_meta_data(meta);
     throw_unless(401, check_signature(hash, signature, pub_key));
 
     accept_message();
@@ -343,7 +349,24 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     int op = in_msg~load_uint(32);
     if (op == "update_index"c) {
         int new_index = in_msg~load_uint(32);
-        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, new_index, pub_key);
+        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, new_index, pub_key, tokens_data);
+
+        return ();
+    }
+
+    if (op == "set_pt_minder_addr"c) {
+        slice minter_addr = in_msg~load_msg_addr();
+
+        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(minter_addr).store_slice(minter_addr).end_cell());
+
+        return ();
+    }
+
+    if (op == "set_yt_minder_addr"c) {
+        slice minter_addr = in_msg~load_msg_addr();
+        (slice pt_add, _) = load_tokens_data(tokens_data);
+
+        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(pt_add).store_slice(minter_addr).end_cell());
 
         return ();
     }
@@ -352,26 +375,33 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
 }
 
 slice get_wallet_address(slice owner_address) method_id {
-    (_, cell user_code, _, _, cell meta) = load_data();
+    (_, cell user_code, _, _, cell meta, cell tokens_data) = load_data();
     (int maturity, _, _) = load_meta_data(meta);
-    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity);
+    (slice pt_minter_addr, slice yt_minder_addr) = load_tokens_data(tokens_data);
+    cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity, pt_minter_addr, yt_minder_addr);
     return calculate_user_order_address(state_init);
 }
 
 int get_index() method_id {
-    (_, _, _, _, cell meta) = load_data();
+    (_, _, _, _, cell meta, _) = load_data();
     (_, int index, _) = load_meta_data(meta);
     return index;
 }
 
 slice get_underlying_asset_wallet_addr() method_id {
-    (_, _, _, slice addr, _) = load_data();
+    (_, _, _, slice addr, _, _) = load_data();
     return addr;
 }
 
 slice get_underlying_asset_minter_addr() method_id {
-    (_, _, slice addr, _, _) = load_data();
+    (_, _, slice addr, _, _, _) = load_data();
     return addr;
+}
+
+(slice, slice) get_pt_yt_minter_addr() method_id {
+    (_, _, _, _, _, cell tokens_data) = load_data();
+    (slice pt, slice yt) = load_tokens_data(tokens_data);
+    return (pt, yt);
 }
 
 int get_status() method_id {

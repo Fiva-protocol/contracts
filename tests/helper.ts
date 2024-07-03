@@ -5,7 +5,7 @@ import { JettonMinter } from '../wrappers/JettonMinter';
 import { JettonWallet } from '../wrappers/JettonWallet';
 import { Master } from '../wrappers/Master';
 import { Opcodes } from '../helpers/Opcodes';
-import { mnemonicNew, mnemonicToPrivateKey } from 'ton-crypto';
+import { mnemonicNew, mnemonicToPrivateKey, sign } from 'ton-crypto';
 
 export async function setupMaster(
     blockchain: Blockchain,
@@ -27,13 +27,14 @@ export async function setupMaster(
                 underlyingAssetWalletAddr: underlyingAssetWallet?.address,
                 maturity: maturity,
                 index: index,
-                pubKey: pubKey
+                pubKey: pubKey,
+                tokens: beginCell().endCell()
             },
             masterCode
         )
     );
 
-    const result = await master.sendDeploy(deployer.getSender(), toNano('0.5'));
+    const result = await master.sendDeploy(deployer.getSender(), toNano('0.9'));
     expect(result.transactions).toHaveTransaction({
         from: deployer.address,
         to: master.address,
@@ -108,11 +109,11 @@ export async function supplyJetton(
     yieldJettonMinter: SandboxContract<JettonMinter>
 ) {
     return await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
-            value: toNano('0.5'),
+            value: toNano('0.8'),
             toAddress: master.address,
             queryId: 1,
             jettonAmount: amount,
-            fwdAmount: toNano('0.4'),
+            fwdAmount: toNano('0.3'),
             fwdPayload: beginCell()
                 .storeUint(Opcodes.supply, 32) // op code
                 .storeUint(11, 64) // query id

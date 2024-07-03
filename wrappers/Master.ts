@@ -10,6 +10,7 @@ export type MasterConfig = {
     maturity: bigint;
     index: bigint;
     pubKey: Buffer;
+    tokens: Cell,
 };
 
 export function masterConfigToCell(config: MasterConfig): Cell {
@@ -23,6 +24,7 @@ export function masterConfigToCell(config: MasterConfig): Cell {
             .storeUint(config.index, 32)
             .storeBuffer(config.pubKey)
             .endCell())
+        .storeRef(config.tokens)
         .endCell();
 }
 
@@ -84,7 +86,7 @@ export class Master implements Contract {
         });
     }
 
-    async sendExternalMessage(
+    async sendUpdateIndex(
         provider: ContractProvider,
         opts: {
             opCode: number,
@@ -95,6 +97,29 @@ export class Master implements Contract {
         const msgToSign = beginCell()
             .storeUint(opts.opCode, 32)
             .storeUint(opts.index, 32)
+            .endCell();
+
+        const signature = opts.signFunc(msgToSign.hash());
+
+        await provider.external(
+            beginCell()
+                .storeBuffer(signature)
+                .storeSlice(msgToSign.asSlice())
+                .endCell()
+        );
+    }
+
+    async sendMinderAddr(
+        provider: ContractProvider,
+        opts: {
+            opCode: number,
+            minderAddr: Address,
+            signFunc: (buf: Buffer) => Buffer;
+        }
+    ) {
+        const msgToSign = beginCell()
+            .storeUint(opts.opCode, 32)
+            .storeAddress(opts.minderAddr)
             .endCell();
 
         const signature = opts.signFunc(msgToSign.hash());
@@ -131,5 +156,13 @@ export class Master implements Contract {
     async getIndex(provider: ContractProvider) {
         const result = await provider.get('get_index', []);
         return result.stack.readBigNumber();
+    }
+
+    async getPTAndYTMinderAddresses(provider: ContractProvider) {
+        const result = await provider.get('get_pt_yt_minter_addr', []);
+        return {
+            pt: result.stack.readAddress(),
+            yt: result.stack.readAddress()
+        };
     }
 }

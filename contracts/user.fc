@@ -6,9 +6,6 @@
 
 const exec_fwd_fee = 30000000;  ;; 0.03 TON
 
-const AFTER_MATURITY = 0;
-const BEFORE_MATURITY = 1;
-
 ;; storage:
 ;; creator address
 ;; master contract address
@@ -16,7 +13,8 @@ const BEFORE_MATURITY = 1;
 ;; index
 ;; interest
 ;; ytbalance
-(slice, slice, int, int, int, int, int) load_data() inline {
+;; burn meta information
+(slice, slice, int, int, int, int, cell) load_data() inline {
     slice ds = get_data().begin_parse();
     return (
         ds~load_msg_addr(),
@@ -25,11 +23,11 @@ const BEFORE_MATURITY = 1;
         ds~load_uint(32),
         ds~load_uint(32),
         ds~load_coins(),
-        ds~load_uint(2)
+        ds~load_ref()
     );
 }
 
-() save_data(slice owner, slice master_contract, int maturity, int index, int interest, int yt_balance, int burn_count) impure inline {
+() save_data(slice owner, slice master_contract, int maturity, int index, int interest, int yt_balance, cell burn) impure inline {
     set_data(begin_cell()
         .store_slice(owner)
         .store_slice(master_contract)
@@ -37,8 +35,14 @@ const BEFORE_MATURITY = 1;
         .store_uint(index, 32)
         .store_uint(interest, 32)
         .store_coins(yt_balance)
-        .store_uint(burn_count, 2)
+        .store_ref(burn)
         .end_cell());
+}
+
+(slice, slice, int, int) load_burn_data() method_id {
+    (_, _, _, _, _, _, cell burn_data) = load_data();
+    slice fc = burn_data.begin_parse();
+    return (fc~load_msg_addr(), fc~load_msg_addr(), fc~load_coins(), fc~load_coins());
 }
 
 () on_bounce(slice in_msg_body) impure {
@@ -55,7 +59,7 @@ const BEFORE_MATURITY = 1;
     var msg = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(master_address)
-        .store_coins(0) 
+        .store_coins(0)
         .store_uint(1, 107)
         .store_ref(msg_body)
         .end_cell();
@@ -63,14 +67,12 @@ const BEFORE_MATURITY = 1;
     send_raw_message(msg, 64);
 }
 
-() send_jettons(slice to_address, slice owner_addr, slice master_walelt_addr, int maturity_type, int jetton_amount, int query_id) impure {
+() send_jettons(slice to_address, slice owner_addr, int jetton_amount, int query_id) impure {
     var msg_body = begin_cell()
         .store_uint("redeem_notification"c, 32)
         .store_uint(query_id, 64)
-        .store_uint(maturity_type, 32)
         .store_coins(jetton_amount)
         .store_slice(owner_addr)
-        .store_slice(master_walelt_addr)
         .end_cell();
 
     var msg = begin_cell()
@@ -80,7 +82,7 @@ const BEFORE_MATURITY = 1;
         .store_uint(1, 107)
         .store_ref(msg_body).end_cell();
 
-    send_raw_message(msg, 0); 
+    send_raw_message(msg, 0);
 }
 
 () burn_token(slice token_addr, int amount, int jetton_amount, int query_id) impure inline {
@@ -94,12 +96,31 @@ const BEFORE_MATURITY = 1;
     var msg_pt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(token_addr)
-        .store_coins(amount) 
+        .store_coins(amount)
         .store_uint(1, 107)
         .store_ref(msg_body_pt)
         .end_cell();
 
-    send_raw_message(msg_pt, 1 + 16); 
+    send_raw_message(msg_pt, 1 + 16);
+}
+
+() validate_wallet_addr(slice token_addr, int query_id) impure inline {
+    var msg_body = begin_cell()
+        .store_uint(op::provide_wallet_address(), 32)
+        .store_uint(query_id, 64)
+        .store_slice(my_address())
+        .store_uint(0, 1)
+        .end_cell();
+
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(token_addr)
+        .store_coins(0)
+        .store_uint(1, 107)
+        .store_ref(msg_body)
+        .end_cell();
+
+    send_raw_message(msg, 64);
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -123,7 +144,8 @@ const BEFORE_MATURITY = 1;
     cs~load_coins();
     int op = in_msg_body~load_uint(32);
     int query_id = in_msg_body~load_uint(64);
-    (slice owner_addr, slice master_addr, int maturity, int index, int interest, int yt_balance, int burn_count) = load_data();
+    (slice owner_addr, slice master_addr, int maturity, int index, int interest, int yt_balance, cell burn_data) = load_data();
+    (slice pt_minter_addr, slice yt_minter_addr, int pt_balance_to_burn, int yt_balance_to_burn) = load_burn_data();
 
     if (op == op::transfer_notification()) {
         int jetton_amounts = in_msg_body~load_coins();
@@ -135,36 +157,36 @@ const BEFORE_MATURITY = 1;
         slice pt_addr = fwd_cs~load_msg_addr();
         slice yt_addr = fwd_cs~load_msg_addr();
         slice master_wallet_addr = fwd_cs~load_msg_addr();
+        int is_pt = fwd_cs~load_uint(2);
 
         if (fwd_op == "redeem"c) {
-            var maturity_type = AFTER_MATURITY;
             if (now() < maturity) {
-                ;; before maturity
-                if (burn_count == 0) {
-                    save_data(owner_addr, master_addr, maturity, index, interest, yt_balance, 1);
-
-                    return ();
+                if is_pt == 0 {
+                    validate_wallet_addr(pt_minter_addr, fwd_query_id);
+                    save_data(owner_addr, master_wallet_addr, maturity, index, interest, yt_balance, begin_cell()
+                        .store_slice(pt_minter_addr)
+                        .store_slice(yt_minter_addr)
+                        .store_coins(jetton_amounts)
+                        .store_coins(yt_balance_to_burn)
+                        .end_cell());
                 } else {
-                    in_msg_body~load_msg_addr();
-                    in_msg_body~skip_bits(1);
-
-                    yt_balance -= jetton_amounts;
-
-                    burn_token(pt_addr, exec_fwd_fee, jetton_amounts, fwd_query_id);
-                    burn_token(yt_addr, exec_fwd_fee, jetton_amounts, fwd_query_id);
-
-                    maturity_type = BEFORE_MATURITY;
-
-                    save_data(owner_addr, master_addr, maturity, index, interest, yt_balance, 0);
+                    validate_wallet_addr(yt_minter_addr, fwd_query_id);
+                    save_data(owner_addr, master_wallet_addr, maturity, index, interest, yt_balance, begin_cell()
+                        .store_slice(pt_minter_addr)
+                        .store_slice(yt_minter_addr)
+                        .store_coins(pt_balance_to_burn)
+                        .store_coins(jetton_amounts)
+                        .end_cell());
                 }
             } else {
-                in_msg_body~load_msg_addr();
-                in_msg_body~skip_bits(1);
-
-                burn_token(pt_addr, exec_fwd_fee, jetton_amounts, fwd_query_id);
+                validate_wallet_addr(pt_minter_addr, fwd_query_id);
+                save_data(owner_addr, master_wallet_addr, maturity, index, interest, yt_balance, begin_cell()
+                    .store_slice(pt_minter_addr)
+                    .store_slice(yt_minter_addr)
+                    .store_coins(jetton_amounts)
+                    .store_coins(yt_balance_to_burn)
+                    .end_cell());
             }
-
-            send_jettons(master_addr, owner_addr, master_wallet_addr, maturity_type, jetton_amounts, fwd_query_id);
 
             return ();
         }
@@ -181,7 +203,7 @@ const BEFORE_MATURITY = 1;
         int d_interest = yt_balance * ((1000000 / index) - (1000000 / new_index));
         interest += d_interest;
         int new_interest = interest / 1000;
-        save_data(owner_addr, master_addr, maturity, index, new_interest, yt_balance, burn_count);
+        save_data(owner_addr, master_addr, maturity, index, new_interest, yt_balance, burn_data);
         send_cacl_interest(new_interest, master_addr, query_id, ts_master_address, owner_addr);
 
         return ();
@@ -191,7 +213,43 @@ const BEFORE_MATURITY = 1;
         int yt_mint = in_msg_body~load_coins();
         yt_balance += yt_mint;
         int new_index = in_msg_body~load_uint(32);
-        save_data(owner_addr, master_addr, maturity, new_index, interest, yt_balance, burn_count);
+        save_data(owner_addr, master_addr, maturity, new_index, interest, yt_balance, burn_data);
+
+        return ();
+    }
+
+    if (op == op::take_wallet_address()) {
+        if (in_msg_body.slice_empty?()) {
+            ;; todo
+        } else {
+            slice wallet_addr = in_msg_body~load_msg_addr();
+            burn_token(wallet_addr, exec_fwd_fee, pt_balance_to_burn, query_id);
+            send_jettons(master_addr, owner_addr, pt_balance_to_burn, query_id);
+
+            ;; (slice pt_minter_addr, slice yt_minter_addr, int pt_balance_to_burn, int yt_balance_to_burn) = load_burn_data();
+            ;; if (now() > maturity) {
+            ;;     ;; after maturity
+            ;;     if (equal_slices(sender_addr, pt_minter_addr)) {
+            ;;
+            ;;     } else {
+            ;;         ~dump(-1023);
+            ;;     }
+            ;; } else {
+            ;;     if (equal_slices(sender_addr, pt_minter_addr)) {
+            ;;         burn_token(wallet_addr, exec_fwd_fee, pt_balance_to_burn, query_id);
+            ;;     }
+            ;;
+            ;;     if (equal_slices(sender_addr, yt_minter_addr)) {
+            ;;         burn_token(wallet_addr, exec_fwd_fee, yt_balance_to_burn, query_id);
+            ;;     }
+            ;;
+            ;;     if (yt_balance_to_burn == pt_balance_to_burn) {
+            ;;         send_jettons(master_addr, owner_addr, pt_balance_to_burn, query_id);
+            ;;     } else {
+            ;;         ;; todo send tokens back to the user
+            ;;     }
+            ;; }
+        }
 
         return ();
     }

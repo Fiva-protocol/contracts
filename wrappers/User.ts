@@ -14,6 +14,10 @@ export type UserConfig = {
     owner: Address;
     masterContract: Address;
     maturity: bigint;
+    index: bigint,
+    interest: bigint,
+    ytBalance: bigint,
+    burn: Cell
 };
 
 export function userConfigToCell(config: UserConfig): Cell {
@@ -21,6 +25,10 @@ export function userConfigToCell(config: UserConfig): Cell {
         .storeAddress(config.owner)
         .storeAddress(config.masterContract)
         .storeUint(config.maturity, 32)
+        .storeUint(config.index, 32)
+        .storeUint(config.interest, 32)
+        .storeCoins(config.ytBalance)
+        .storeRef(config.burn)
         .endCell();
 }
 
@@ -49,36 +57,36 @@ export class User implements Contract {
         });
     }
 
-    async sendRedeem(
-        provider: ContractProvider,
-        via: Sender,
-        opts: {
-            value: bigint;
-            queryId: number;
-            jettonAmount: bigint,
-            masterWalletAddr: Address,
-            principleTokenAddr: Address,
-            yieldTokenAddr: Address,
-            fwdPayload: Cell;
-        }
-    ) {
-        await provider.internal(via, {
-                value: opts.value,
-                sendMode: SendMode.PAY_GAS_SEPARATELY,
-                body: beginCell()
-                    .storeUint(Opcodes.redeem, 32)
-                    .storeUint(opts.queryId, 64)
-                    .storeCoins(opts.jettonAmount)
-                    .storeAddress(via.address)
-                    .storeUint(0, 1)
-                    .storeAddress(opts.principleTokenAddr)
-                    .storeAddress(opts.yieldTokenAddr)
-                    .storeUint(0, 1)
-                    .storeRef(beginCell().storeAddress(opts.masterWalletAddr).endCell())
-                    .endCell()
-            }
-        );
-    }
+    // async sendRedeem(
+    //     provider: ContractProvider,
+    //     via: Sender,
+    //     opts: {
+    //         value: bigint;
+    //         queryId: number;
+    //         jettonAmount: bigint,
+    //         masterWalletAddr: Address,
+    //         principleTokenAddr: Address,
+    //         yieldTokenAddr: Address,
+    //         fwdPayload: Cell;
+    //     }
+    // ) {
+    //     await provider.internal(via, {
+    //             value: opts.value,
+    //             sendMode: SendMode.PAY_GAS_SEPARATELY,
+    //             body: beginCell()
+    //                 .storeUint(Opcodes.redeem, 32)
+    //                 .storeUint(opts.queryId, 64)
+    //                 .storeCoins(opts.jettonAmount)
+    //                 .storeAddress(via.address)
+    //                 .storeUint(0, 1)
+    //                 .storeAddress(opts.principleTokenAddr)
+    //                 .storeAddress(opts.yieldTokenAddr)
+    //                 .storeUint(0, 1)
+    //                 .storeRef(beginCell().storeAddress(opts.masterWalletAddr).endCell())
+    //                 .endCell()
+    //         }
+    //     );
+    // }
 
     async getMasterAddr(provider: ContractProvider) {
         const result = await provider.get('get_master_addr', []);
