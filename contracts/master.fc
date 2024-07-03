@@ -53,7 +53,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_ref(state_init)
         .store_ref(begin_cell().end_cell())
         .end_cell();
-    send_raw_message(msg, 1); ;; revert on errors
+    send_raw_message(msg, 0); 
     return to_contract_address;
 }
 
@@ -77,12 +77,12 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     var msg_pt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(pt_addr)
-        .store_coins(amount) ;; is it correct?
+        .store_coins(amount)
         .store_uint(1, 107)
         .store_ref(msg_body_pt)
         .end_cell();
 
-    send_raw_message(msg_pt, 1); ;; revert on errors
+    send_raw_message(msg_pt, 0); 
 }
 
 () mint_yield_token(slice yt_addr, slice to_addr, int amount, int jetton_amount, int query_id) impure inline {
@@ -105,12 +105,12 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     var msg_yt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(yt_addr)
-        .store_coins(amount) ;; is it correct?
+        .store_coins(amount) 
         .store_uint(1, 107)
         .store_ref(msg_body_yt)
         .end_cell();
 
-    send_raw_message(msg_yt, 1); ;; revert on errors
+    send_raw_message(msg_yt, 0); 
 }
 
 () claim_interest(int amount, int query_id, int index, slice user_contract_addr, slice ts_master_address) impure inline {
@@ -124,7 +124,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     var msg = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(user_contract_addr)
-        .store_coins(400000000) ;;change later
+        .store_coins(exec_fwd_fee)
         .store_uint(1, 107)
         .store_ref(msg_body)
         .end_cell();
@@ -143,12 +143,12 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
     var msg_yt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(underlying_asset_addr)
-        .store_coins(0) ;; is it correct?
+        .store_coins(0) 
         .store_uint(1, 107)
         .store_ref(msg_body_yt)
         .end_cell();
 
-    send_raw_message(msg_yt, 64); ;; revert on errors
+    send_raw_message(msg_yt, 64); 
 }
 
 () redeem(slice ts_master_address, int query_id, int redeem_amount, slice to_addr) impure inline {
@@ -176,7 +176,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_ref(msg_body)
         .end_cell();
 
-    send_raw_message(msg, 64); ;; revert on errors
+    send_raw_message(msg, 64);
 }
 
 () send_interest(int interest, slice ts_master_address, int query_id, slice to_addr, int fwd_amount) impure inline {
@@ -189,11 +189,6 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_uint(0, 1)
         .store_coins(fwd_amount)
         .store_uint(0, 1)
-    ;; .store_ref(begin_cell()
-    ;;     .store_uint(777, 32)
-    ;;     .store_uint(query_id, 64)
-    ;;     .store_coins(interest)
-    ;;     .end_cell())
         .end_cell();
 
     var msg = begin_cell()
@@ -204,7 +199,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity) impu
         .store_ref(msg_body)
         .end_cell();
 
-    send_raw_message(msg, 64); ;; revert on errors
+    send_raw_message(msg, 64); 
 }
 
 () send_ytbalance_index_to_user(slice user_contract_addr, int query_id, int yt_amount, int index) impure inline {

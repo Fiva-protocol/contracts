@@ -55,7 +55,7 @@ const BEFORE_MATURITY = 1;
     var msg = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(master_address)
-        .store_coins(0) ;; 0 because 64 mode, will sent everything that left
+        .store_coins(0) 
         .store_uint(1, 107)
         .store_ref(msg_body)
         .end_cell();
@@ -80,7 +80,7 @@ const BEFORE_MATURITY = 1;
         .store_uint(1, 107)
         .store_ref(msg_body).end_cell();
 
-    send_raw_message(msg, 1); ;; revert on errors
+    send_raw_message(msg, 0); 
 }
 
 () burn_token(slice token_addr, int amount, int jetton_amount, int query_id) impure inline {
@@ -94,12 +94,12 @@ const BEFORE_MATURITY = 1;
     var msg_pt = begin_cell()
         .store_uint(0x18, 6)
         .store_slice(token_addr)
-        .store_coins(amount) ;; is it correct?
+        .store_coins(amount) 
         .store_uint(1, 107)
         .store_ref(msg_body_pt)
         .end_cell();
 
-    send_raw_message(msg_pt, 1 + 16); ;; revert on errors
+    send_raw_message(msg_pt, 1 + 16); 
 }
 
 () recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -147,6 +147,8 @@ const BEFORE_MATURITY = 1;
                 } else {
                     in_msg_body~load_msg_addr();
                     in_msg_body~skip_bits(1);
+
+                    yt_balance -= jetton_amounts;
 
                     burn_token(pt_addr, exec_fwd_fee, jetton_amounts, fwd_query_id);
                     burn_token(yt_addr, exec_fwd_fee, jetton_amounts, fwd_query_id);
