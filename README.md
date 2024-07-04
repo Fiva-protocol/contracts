@@ -1,10 +1,24 @@
 # FIVA contracts
 
-This repo contains two main contracts which are the corstone of FIVA protocol. These protocols are Master and User smarts contracts. 
+This repository contains the two main contracts that are the cornerstone of the FIVA protocol: the Master Contract and the User Order Contract. Additionally, the project includes tests for these contracts and scripts. The scripts are used for deploying smart contracts and creating Vaults and Pools (AMMs) using the Dedust SDK.
 
-## FIVA Master Contract
+## How to use
 
-This repository contains the master contract for the FIVA protocol, written in FunC. The contract includes functions and methods to yield tokenization, minting of Principal Tokens (PT) and Yield Tokens (YT) and redeeming them from protocol. Each assets will have separate Master Contract for decided maturity, since for yield stripping defined timeline is needed. 
+### Build
+
+`npx blueprint build` or `yarn blueprint build`
+
+### Test
+
+`npx blueprint test` or `yarn blueprint test`
+
+### Deploy or run another script
+
+`npx blueprint run` or `yarn blueprint run`
+
+## Master Contract
+
+The master contract for the FIVA protocol is written in FunC. The contract includes functions and methods to yield tokenization, minting of Principal Tokens (PT) and Yield Tokens (YT) and redeeming them from protocol. Each assets will have separate Master Contract for decided maturity, since for yield stripping defined timeline is needed. 
 
 ### Key Features
 
@@ -47,8 +61,42 @@ This repository contains the master contract for the FIVA protocol, written in F
 
 The contract handles all essential functions for managing yield tokenization, minting, redeeming, and interest management within the FIVA protocol.
 
+## User Smart Contract
 
+The User Smart Contract is written in FunC. This contract manages user-specific information and interactions within the FIVA protocol, handling interest calculation and redeeming tokens.
 
+### Key Features
+
+- **Interest Management**: Functions to calculate and claim user's interest.
+- **Tokenization**: Facilitates the division of yield-bearing assets into Principal Tokens (PT) and Yield Tokens (YT).
+- **Redeeming**: Handles the redeeming of tokens and the transfer of underlying assets.
+
+### Storage Structure
+
+- **Owner Address**: The address of the user who owns the contract.
+- **Master Contract Address**: The address of the master contract associated with this user contract.
+- **Maturity**: The maturity date of the yield-bearing asset.
+- **Index**: The current index value for yield calculation.
+- **Interest**: The accrued interest for the user.
+- **YT Balance**: The balance of Yield Tokens.
+- **Burn Data**: Meta information related to burning tokens.
+
+### Functions
+
+#### Interest Management
+
+- `send_cacl_interest()`: Sends the calculated interest details to the master contract and updates the user contract with the new interest value.
+
+#### Redeem
+
+- `fwd_op == "redeem"c`: Burns YT/PT tokens recieved from a user and sends the transfer request for yield-bearing asset in return. For example, the user sent YT tsTON and PT tsTON, contract burns these tokens and send transfer request to the master contract.
+- `validate_wallet_addr()`: Validates the address of sender for the given token. This function will be improved in the future to make protocol more secure and avoid melitious actors.
+- `burn_token()`: Burns the specified amount of tokens.
+- `send_jettons()`: Sends transfer request to the master contract.
+
+### Usage
+
+The contract handles all essential functions for managing user-specific information, yield tokenization, interest calculation, sent token validation, and redeeming tokens within the FIVA protocol. This ensures accurate yield calculations and token management for each user participating in the FIVA protocol.
 
 ## Project structure
 
@@ -57,18 +105,5 @@ The contract handles all essential functions for managing yield tokenization, mi
 -   `tests` - tests for the contracts.
 -   `scripts` - scripts used by the project, mainly the deployment scripts and scripts for deploying and interecting with AMMs using Dedust SDK.
 
-## How to use
-
-### Build
-
-`npx blueprint build` or `yarn blueprint build`
-
-### Test
-
-`npx blueprint test` or `yarn blueprint test`
-
-### Deploy or run another script
-
-`npx blueprint run` or `yarn blueprint run`
 
 
