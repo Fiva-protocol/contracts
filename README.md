@@ -16,6 +16,13 @@ This repository contains the two main contracts that are the cornerstone of the 
 
 `npx blueprint run` or `yarn blueprint run`
 
+## Project structure
+
+-   `contracts` - source code of all the smart contracts of the project and their dependencies.
+-   `wrappers` - wrapper classes (implementing `Contract` from ton-core) for the contracts, including any [de]serialization primitives and compilation functions.
+-   `tests` - tests for the contracts.
+-   `scripts` - scripts used by the project, mainly the deployment scripts and scripts for deploying and interecting with AMMs using Dedust SDK.
+
 ## Master Contract
 
 The master contract for the FIVA protocol is written in FunC. The contract includes functions and methods to yield tokenization, minting of Principal Tokens (PT) and Yield Tokens (YT) and redeeming them from protocol. Each assets will have separate Master Contract for decided maturity, since for yield stripping defined timeline is needed. 
@@ -97,13 +104,6 @@ The User Smart Contract is written in FunC. This contract manages user-specific 
 ### Usage
 
 The contract handles all essential functions for managing user-specific information, yield tokenization, interest calculation, sent token validation, and redeeming tokens within the FIVA protocol. This ensures accurate yield calculations and token management for each user participating in the FIVA protocol.
-
-## Project structure
-
--   `contracts` - source code of all the smart contracts of the project and their dependencies.
--   `wrappers` - wrapper classes (implementing `Contract` from ton-core) for the contracts, including any [de]serialization primitives and compilation functions.
--   `tests` - tests for the contracts.
--   `scripts` - scripts used by the project, mainly the deployment scripts and scripts for deploying and interecting with AMMs using Dedust SDK.
 
 
 
