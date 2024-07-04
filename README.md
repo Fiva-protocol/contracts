@@ -105,6 +105,12 @@ The User Smart Contract is written in FunC. This contract manages user-specific 
 
 The contract handles all essential functions for managing user-specific information, yield tokenization, interest calculation, sent token validation, and redeeming tokens within the FIVA protocol. This ensures accurate yield calculations and token management for each user participating in the FIVA protocol.
 
+## FIVA's AMM and Swaps
+
+As an initial solution for our MVP, we utilized the Dedust protocol. Using the Dedust SDK, we created pools for PT/tsTON and YT/tsTON. The Dedust SDK was also implemented to facilitate interaction with these pools, including providing liquidity, performing swaps, and withdrawing liquidity. More details about Dedust pools and the SDK can be found [here](https://docs.dedust.io/docs/introduction).
+
+Due to the unique nature of our protocol, a custom AMM is planned for development in the future to better meet our specific needs.
+
 ## Roadmap
 
 This repository presents the first version of the FIVA protocol contracts. After deploying and testing these contracts in production, our team has discussed new concepts and architectural solutions to improve the security, gas efficiency, and user experience of the protocol.
@@ -122,3 +128,9 @@ This repository presents the first version of the FIVA protocol contracts. After
 3. **Research Oracle Solutions**:
    - Investigate alternative oracle solutions on TON.
    - Aim to eliminate the need for receiving external messages to make the application truly decentralized and transparent in the spirit of DeFi.
+  
+4. **Create Own AMM Solution**:
+   - Improve capital efficiency and reduce impermanent loss for Liquidity Providers by developing and choosing new methods for creating AMMs and Pools (currently using Pools from Dedust).
+   - Implement Pendle's version of AMM, as it shares a similar protocol nature. Pendle V2's PT AMM is inspired by Notional Finance's AMM. More details can be found [here](https://github.com/pendle-finance/pendle-v2-resources/blob/main/whitepapers/V2_AMM.pdf).
+   - Research ways to merge YT and PT pools into one to address the liquidity problem. Pendle uses ghost AMM with flash loan swaps to solve this issue, and our team aims to explore how to implement similar solutions on TON.
+ 
