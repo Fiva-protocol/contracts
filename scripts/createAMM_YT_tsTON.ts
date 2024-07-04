@@ -4,13 +4,10 @@ import { Asset, PoolType, ReadinessStatus } from '@dedust/sdk';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-  const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); // Added Dedust Factory address
+  const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); 
 
-  const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); //https://mainnet-v4.tonhubapi.com
-  const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); //changed to testnet
-
-
-  // You can do it using the SDK or by manually sending the create_vault message (TL-B) to the Factory contract.
+  const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); 
+  const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); 
 
   // Address of a new jetton
   const YTAddress = Address.parse('EQDsmCkmupqZ9mKad3BMQg-LEI5Br5PV0pBZvAH11_Du-xcW');

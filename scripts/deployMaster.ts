@@ -1,10 +1,7 @@
 import { Address, toNano } from '@ton/core';
 import { Master } from '../wrappers/Master';
 import { compile, NetworkProvider } from '@ton/blueprint';
-import { JettonMinter } from '../wrappers/JettonMinter';
 
-
-// Your string pubKey
 const pubKeyString = '758c2f306980f710c63dd8545d132b3172ef5a6229376861d4455e7ca1aed8b5';
   
 // Convert the string to a Buffer
@@ -24,8 +21,6 @@ export async function run(provider: NetworkProvider) {
     await master.sendDeploy(provider.sender(), toNano('0.05'));
 
     await provider.waitForDeploy(master.address);
-
-    // run methods on `master`
 
 }
 

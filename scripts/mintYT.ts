@@ -1,6 +1,6 @@
-import { Address, beginCell, toNano } from '@ton/core';
+import { Address, toNano } from '@ton/core';
 import { JettonMinter } from '../wrappers/JettonMinter';
-import { compile, NetworkProvider } from '@ton/blueprint';
+import { NetworkProvider } from '@ton/blueprint';
 
 
 

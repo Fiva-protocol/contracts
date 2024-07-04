@@ -4,26 +4,21 @@ import { Asset, PoolType, ReadinessStatus } from '@dedust/sdk';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-  const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); // Added Dedust Factory address
+  const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); 
+  const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); 
+  const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); 
 
-  const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); //https://mainnet-v4.tonhubapi.com
-  const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); //changed to testnet
-
-
-  // You can do it using the SDK or by manually sending the create_vault message (TL-B) to the Factory contract.
-
-  // Address of a new jetton
   const PTAddress = Address.parse('EQDrQ70VeQ1X8xzszOHVRLq7tAMDrSnPY54O0VKGxZSkAESK');
   const tsTONAddress = Address.parse('kQCwR07mEDg22t_TYI1oXrb5lRkRUBtmJSjpKGdw_TL2B4yf');
 
   // Create a vault PT
-  // await factory.sendCreateVault(provider.sender(), {
-  //   asset: Asset.jetton(PTAddress),
-  // });
-  // // Create a vault tston
-  // await factory.sendCreateVault(provider.sender(), {
-  //   asset: Asset.jetton(tsTONAddress),
-  // });
+  await factory.sendCreateVault(provider.sender(), {
+    asset: Asset.jetton(PTAddress),
+  });
+  // Create a vault tston
+  await factory.sendCreateVault(provider.sender(), {
+    asset: Asset.jetton(tsTONAddress),
+  });
 
   const tsTON = Asset.jetton(tsTONAddress);
   const PT = Asset.jetton(PTAddress);

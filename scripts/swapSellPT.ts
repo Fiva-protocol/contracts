@@ -3,12 +3,10 @@ import { Address, TonClient4 } from "@ton/ton";
 import { toNano } from '@ton/core';
 import { NetworkProvider } from '@ton/blueprint';
 
-// ...
 export async function run(provider: NetworkProvider) {
-    // NOTE: We will use tonVault to send a message.
-    const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); // Added Dedust Factory address
-    const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); //https://mainnet-v4.tonhubapi.com
-    const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); //changed to testnet
+    const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); 
+    const tonClient = new TonClient4({ endpoint: "https://sandbox-v4.tonhubapi.com" }); 
+    const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); 
     
     const PTAddress = Address.parse('EQDrQ70VeQ1X8xzszOHVRLq7tAMDrSnPY54O0VKGxZSkAESK');
     const tsTONAddress = Address.parse('kQCwR07mEDg22t_TYI1oXrb5lRkRUBtmJSjpKGdw_TL2B4yf');
@@ -24,10 +22,7 @@ export async function run(provider: NetworkProvider) {
         throw new Error('Pool (tsTON, YT) does not exist.');
     }
     
-    // Check if vault exits:
-//     if ((await tonVault.getReadinessStatus()) !== ReadinessStatus.READY) {
-//         throw new Error('Vault (TON) does not exist.');
-// };
+
     const amountIn = toNano('1'); 
 
     const ptVault = tonClient.open(await factory.getJettonVault(PTAddress));

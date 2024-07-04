@@ -26,16 +26,16 @@ export async function run(provider: NetworkProvider, args: string[]) {
 
     console.log('Deployed jetton address:', await jetton.address);
 
-    // await jetton.sendMint(provider.sender(), {
-    //     toAddress: provider.sender().address as Address,
-    //     jettonAmount: toNano('10000'),
-    //     amount: toNano('0.1'),
-    //     queryId: 123,
-    //     value: toNano('0.2'),
-    // });
+    await jetton.sendMint(provider.sender(), {
+        toAddress: provider.sender().address as Address,
+        jettonAmount: toNano('10000'),
+        amount: toNano('0.1'),
+        queryId: 123,
+        value: toNano('0.2'),
+    });
 
-    // const userWalletAddr = await jetton.getWalletAddress(provider.sender().address as Address);
-    // console.log(`User wallet address: ${userWalletAddr}`);
+    const userWalletAddr = await jetton.getWalletAddress(provider.sender().address as Address);
+    console.log(`User wallet address: ${userWalletAddr}`);
 }
 
 export function jettonContentToCell(content: JettonMinterContent) {
