@@ -30,3 +30,4 @@ slice calculate_user_order_address(cell state_init) inline {
         .end_cell()
         .begin_parse();
 }
+

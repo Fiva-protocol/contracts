@@ -44,9 +44,9 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
     return (cs~load_uint(32), cs~load_uint(32), cs~load_uint(256));
 }
 
-(slice, slice) load_tokens_data(cell data) inline {
+(slice, slice, slice) load_tokens_data(cell data) inline {
     slice cs = data.begin_parse();
-    return (cs~load_msg_addr(), cs~load_msg_addr());
+    return (cs~load_msg_addr(), cs~load_msg_addr(), cs~load_msg_addr());
 }
 
 slice mint_user_contract(slice owner_address, cell user_code, int maturity, slice pt_minder_addr, yt_minter_addr) impure {
@@ -256,6 +256,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity, slic
     slice tokens = tokens_data.begin_parse();
     slice pt_minter_addr = tokens~load_msg_addr();
     slice yt_minter_addr = tokens~load_msg_addr();
+    slice master_ton_addr = tokens~load_msg_addr();
 
     if (op == op::transfer_notification()) {
         int jetton_amount = in_msg_body~load_coins();
@@ -324,8 +325,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity, slic
         slice user_addr = in_msg_body~load_msg_addr();
 
         int redeam_res = jetton_amount / index * 1000;
-
-        redeem(user_addr, query_id, redeam_res, user_addr);
+        redeem(master_ton_addr, query_id, redeam_res, user_addr);
 
         return ();
     }
@@ -357,16 +357,25 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity, slic
     if (op == "set_pt_minder_addr"c) {
         slice minter_addr = in_msg~load_msg_addr();
 
-        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(minter_addr).store_slice(minter_addr).end_cell());
+        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(minter_addr).store_slice(minter_addr).store_slice(minter_addr).end_cell());
 
         return ();
     }
 
     if (op == "set_yt_minder_addr"c) {
         slice minter_addr = in_msg~load_msg_addr();
-        (slice pt_add, _) = load_tokens_data(tokens_data);
+        (slice pt_add, _, _) = load_tokens_data(tokens_data);
 
-        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(pt_add).store_slice(minter_addr).end_cell());
+        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(pt_add).store_slice(minter_addr).store_slice(minter_addr).end_cell());
+
+        return ();
+    }
+
+        if (op == "set_master_ton_addr"c) {
+        slice master_ton_addr = in_msg~load_msg_addr();
+        (slice pt_add,slice yt_addr, _) = load_tokens_data(tokens_data);
+
+        save_data(admin_addr, user_code, underlying_asset_addr, underlying_asset_master_wallet_addr, maturity, index, pub_key, begin_cell().store_slice(pt_add).store_slice(yt_addr).store_slice(master_ton_addr).end_cell());
 
         return ();
     }
@@ -377,7 +386,7 @@ slice mint_user_contract(slice owner_address, cell user_code, int maturity, slic
 slice get_wallet_address(slice owner_address) method_id {
     (_, cell user_code, _, _, cell meta, cell tokens_data) = load_data();
     (int maturity, _, _) = load_meta_data(meta);
-    (slice pt_minter_addr, slice yt_minder_addr) = load_tokens_data(tokens_data);
+    (slice pt_minter_addr, slice yt_minder_addr, _) = load_tokens_data(tokens_data);
     cell state_init = calculate_user_order_state_init(owner_address, my_address(), user_code, maturity, pt_minter_addr, yt_minder_addr);
     return calculate_user_order_address(state_init);
 }
@@ -400,9 +409,16 @@ slice get_underlying_asset_minter_addr() method_id {
 
 (slice, slice) get_pt_yt_minter_addr() method_id {
     (_, _, _, _, _, cell tokens_data) = load_data();
-    (slice pt, slice yt) = load_tokens_data(tokens_data);
+    (slice pt, slice yt, _) = load_tokens_data(tokens_data);
     return (pt, yt);
 }
+
+(slice) get_master_ton_addr() method_id {
+    (_, _, _, _, _, cell tokens_data) = load_data();
+    (_,_, slice master_ton_addr) = load_tokens_data(tokens_data);
+    return (master_ton_addr);
+}
+
 
 int get_status() method_id {
     return 0;

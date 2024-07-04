@@ -9,5 +9,6 @@ export const Opcodes = {
     redeemNotification: crc32('redeem_notification'),
     updateMasterWalletAddr: crc32('update_wallet_addr'),
     setPTMinderAddr: crc32('set_pt_minder_addr'),
-    setYTMinderAddr: crc32('set_yt_minder_addr')
+    setYTMinderAddr: crc32('set_yt_minder_addr'),
+    setMasterTONAddr: crc32('set_master_ton_addr'),
 };

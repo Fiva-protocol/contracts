@@ -127,6 +127,15 @@ describe('Master', () => {
                 signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
             }
         );
+
+        const masterTonAddresses = await underlyingAsset.minter.getWalletAddress(master.address) 
+        await master.sendMasterTonAddr(
+            {
+                opCode: Opcodes.setMasterTONAddr,
+                masterTonAddr: masterTonAddresses,
+                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
+            }
+        );
     }, 15000);
 
     it('should deploy', () => {
@@ -137,6 +146,15 @@ describe('Master', () => {
         const result = await master.getPTAndYTMinderAddresses();
         expect(result.pt.toRawString()).toEqual(principleToken.minter.address.toRawString());
         expect(result.yt.toRawString()).toEqual(yieldToken.minter.address.toRawString());
+        
+    });
+
+    it('update master ton address', async () => {
+
+        const result = await master.getMasterTonAddresses();
+        const masterTonAddresses = await underlyingAsset.minter.getWalletAddress(master.address) 
+
+        expect(result.toRawString()).toEqual(masterTonAddresses.toRawString());
     });
 
     it('should mint PT and YT', async () => {

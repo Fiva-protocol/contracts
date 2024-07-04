@@ -132,6 +132,28 @@ export class Master implements Contract {
         );
     }
 
+    async sendMasterTonAddr(
+        provider: ContractProvider,
+        opts: {
+            opCode: number,
+            masterTonAddr: Address,
+            signFunc: (buf: Buffer) => Buffer;
+        }
+    ) {
+        const msgToSign = beginCell()
+            .storeUint(opts.opCode, 32)
+            .storeAddress(opts.masterTonAddr)
+            .endCell();
+
+        const signature = opts.signFunc(msgToSign.hash());
+
+        await provider.external(
+            beginCell()
+                .storeBuffer(signature)
+                .storeSlice(msgToSign.asSlice())
+                .endCell()
+        );
+    }
     async getWalletAddress(provider: ContractProvider, address: Address) {
         const result = await provider.get('get_wallet_address', [
             {
@@ -164,5 +186,9 @@ export class Master implements Contract {
             pt: result.stack.readAddress(),
             yt: result.stack.readAddress()
         };
+    }
+    async getMasterTonAddresses(provider: ContractProvider) {
+        const result = await provider.get('get_master_ton_addr', []);
+        return result.stack.readAddress();
     }
 }
