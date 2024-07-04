@@ -105,5 +105,20 @@ The User Smart Contract is written in FunC. This contract manages user-specific 
 
 The contract handles all essential functions for managing user-specific information, yield tokenization, interest calculation, sent token validation, and redeeming tokens within the FIVA protocol. This ensures accurate yield calculations and token management for each user participating in the FIVA protocol.
 
+## Roadmap
 
+This repository presents the first version of the FIVA protocol contracts. After deploying and testing these contracts in production, our team has discussed new concepts and architectural solutions to improve the security, gas efficiency, and user experience of the protocol.
 
+### Next Steps
+
+1. **Adjust YT Token Logic**:
+   - Enhance the YT token logic to prevent malicious actors.
+   - Enable precise calculation of user interest and rewards, avoiding double counting.
+
+2. **Improve Redeem Function**:
+   - Develop a better solution for the redeem function to enhance protocol security.
+   - Update the data structure of the user contract to validate tokens arriving at the protocol.
+
+3. **Research Oracle Solutions**:
+   - Investigate alternative oracle solutions on TON.
+   - Aim to eliminate the need for receiving external messages to make the application truly decentralized and transparent in the spirit of DeFi.
