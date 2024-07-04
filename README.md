@@ -2,6 +2,8 @@
 
 This repository contains the two main contracts that are the cornerstone of the FIVA protocol: the Master Contract and the User Order Contract. Additionally, the project includes tests for these contracts and scripts. The scripts are used for deploying smart contracts and creating Vaults and Pools (AMMs) using the Dedust SDK.
 
+More information about project idea, yield tokenezation and how it was implemented can be found [here] (https://dorahacks.io/buidl/13352#details).
+
 ## How to use
 
 ### Build
