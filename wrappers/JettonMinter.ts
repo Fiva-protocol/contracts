@@ -19,9 +19,8 @@ export function jettonMinterConfigToCell(config: PrincipleTokenMinterConfig): Ce
 export class JettonMinter implements Contract {
     constructor(
         readonly address: Address,
-        readonly init?: { code: Cell; data: Cell }
-    ) {
-    }
+        readonly init?: { code: Cell; data: Cell },
+    ) {}
 
     static createFromAddress(address: Address) {
         return new JettonMinter(address);
@@ -37,7 +36,7 @@ export class JettonMinter implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell()
+            body: beginCell().endCell(),
         });
     }
 
@@ -50,7 +49,7 @@ export class JettonMinter implements Contract {
             amount: bigint;
             queryId: number;
             value: bigint;
-        }
+        },
     ) {
         await provider.internal(via, {
             value: opts.value,
@@ -69,9 +68,9 @@ export class JettonMinter implements Contract {
                         .storeAddress(this.address)
                         .storeCoins(0)
                         .storeUint(0, 1)
-                        .endCell()
+                        .endCell(),
                 )
-                .endCell()
+                .endCell(),
         });
     }
 
@@ -79,8 +78,8 @@ export class JettonMinter implements Contract {
         const result = await provider.get('get_wallet_address', [
             {
                 type: 'slice',
-                cell: beginCell().storeAddress(address).endCell()
-            } as TupleItemSlice
+                cell: beginCell().storeAddress(address).endCell(),
+            } as TupleItemSlice,
         ]);
 
         return result.stack.readAddress();

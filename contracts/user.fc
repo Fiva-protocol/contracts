@@ -211,7 +211,6 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
         if (fwd_op == "redeem"c) {
             if (now() < maturity) {
                 if is_pt == 0 {
-                    ~dump(12345);
                     validate_wallet_addr(pt_minter_addr, fwd_query_id);
 
                     save_data(owner_addr, master_addr, maturity, index, interest, yt_balance, begin_cell()
@@ -303,7 +302,6 @@ const exec_fwd_fee = 30000000;  ;; 0.03 TON
             } else {
             slice wallet_addr = in_msg_body~load_msg_addr();
             burn_token(wallet_addr, exec_fwd_fee, pt_balance_to_burn, query_id);
-                ~dump(-1024);
                 if (yt_balance_to_burn == pt_balance_to_burn) {
                         yt_balance -= yt_balance_to_burn;
                         send_jettons(master_addr, owner_addr, pt_balance_to_burn, query_id);

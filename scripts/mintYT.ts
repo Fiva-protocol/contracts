@@ -2,10 +2,7 @@ import { Address, toNano } from '@ton/core';
 import { JettonMinter } from '../wrappers/JettonMinter';
 import { NetworkProvider } from '@ton/blueprint';
 
-
-
 export async function run(provider: NetworkProvider, args: string[]) {
-
     const jetton = provider.open(
         JettonMinter.createFromAddress(Address.parse('EQAAfs9rz_XkIcM-Cu4dxSy-fXTeZPHjKXQFsDHQpXjeMV7X')),
     );

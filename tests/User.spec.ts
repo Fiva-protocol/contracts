@@ -57,10 +57,20 @@ describe('User', () => {
             jettonMinterCode,
             jettonWalletCode,
             underlyingHolder.address,
-            1000n
+            1000n,
         );
 
-        master = await setupMaster(blockchain, deployer, masterCode, userCode, underlyingAsset.minter, undefined, maturity, index, kp.publicKey);
+        master = await setupMaster(
+            blockchain,
+            deployer,
+            masterCode,
+            userCode,
+            underlyingAsset.minter,
+            undefined,
+            maturity,
+            index,
+            kp.publicKey,
+        );
 
         const principleRandomSeed = Math.floor(Math.random() * 10000);
         const principleJettonMinter = blockchain.openContract(
@@ -68,10 +78,10 @@ describe('User', () => {
                 {
                     adminAddress: master.address,
                     content: beginCell().storeUint(principleRandomSeed, 256).endCell(),
-                    jettonWalletCode: jettonWalletCode
+                    jettonWalletCode: jettonWalletCode,
                 },
-                jettonMinterCode
-            )
+                jettonMinterCode,
+            ),
         );
 
         let result = await principleJettonMinter.sendDeploy(deployer.getSender(), toNano('0.01'));
@@ -80,11 +90,11 @@ describe('User', () => {
             from: deployer.address,
             to: principleJettonMinter.address,
             deploy: true,
-            success: true
+            success: true,
         });
 
         principleToken = {
-            minter: principleJettonMinter
+            minter: principleJettonMinter,
         };
 
         const yieldRandomSeed = Math.floor(Math.random() * 10000);
@@ -93,10 +103,10 @@ describe('User', () => {
                 {
                     adminAddress: master.address,
                     content: beginCell().storeUint(yieldRandomSeed, 256).endCell(),
-                    jettonWalletCode: jettonWalletCode
+                    jettonWalletCode: jettonWalletCode,
                 },
-                jettonMinterCode
-            )
+                jettonMinterCode,
+            ),
         );
 
         result = await yieldJettonMinter.sendDeploy(deployer.getSender(), toNano('0.01'));
@@ -105,37 +115,31 @@ describe('User', () => {
             from: deployer.address,
             to: yieldJettonMinter.address,
             deploy: true,
-            success: true
+            success: true,
         });
 
         yieldToken = {
-            minter: yieldJettonMinter
+            minter: yieldJettonMinter,
         };
 
-        await master.sendMinderAddr(
-            {
-                opCode: Opcodes.setPTMinderAddr,
-                minderAddr: principleToken.minter.address,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await master.sendMinderAddr({
+            opCode: Opcodes.setPTMinderAddr,
+            minderAddr: principleToken.minter.address,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        await master.sendMinderAddr(
-            {
-                opCode: Opcodes.setYTMinderAddr,
-                minderAddr: yieldToken.minter.address,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await master.sendMinderAddr({
+            opCode: Opcodes.setYTMinderAddr,
+            minderAddr: yieldToken.minter.address,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        const masterTonAddresses = await underlyingAsset.minter.getWalletAddress(master.address) 
-        await master.sendMasterTonAddr(
-            {
-                opCode: Opcodes.setMasterTONAddr,
-                masterTonAddr: masterTonAddresses,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        const masterTonAddresses = await underlyingAsset.minter.getWalletAddress(master.address);
+        await master.sendMasterTonAddr({
+            opCode: Opcodes.setMasterTONAddr,
+            masterTonAddr: masterTonAddresses,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
     }, 15000);
 
     it('should deploy', async () => {
@@ -146,14 +150,21 @@ describe('User', () => {
     it('should mint PT and YT and get maturity', async () => {
         const amount: bigint = 100n;
 
-        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const result = await supplyJetton(
+            underlyingHolder,
+            master,
+            underlyingAsset.wallet,
+            amount,
+            principleToken.minter,
+            yieldToken.minter,
+        );
         const userAddress = await master.getWalletAddress(underlyingHolder.address);
 
         expect(result.transactions).toHaveTransaction({
             from: master.address,
             to: userAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
@@ -164,7 +175,14 @@ describe('User', () => {
     it('should mint PT and YT and get index', async () => {
         const amount: bigint = 199n;
 
-        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const result = await supplyJetton(
+            underlyingHolder,
+            master,
+            underlyingAsset.wallet,
+            amount,
+            principleToken.minter,
+            yieldToken.minter,
+        );
 
         const userAddress = await master.getWalletAddress(underlyingHolder.address);
         // Master -> User Order
@@ -172,7 +190,7 @@ describe('User', () => {
             from: master.address,
             to: userAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
@@ -183,14 +201,21 @@ describe('User', () => {
     it('should mint PT and YT and get index', async () => {
         const amount: bigint = 109n;
 
-        const result = await supplyJetton(underlyingHolder, master, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        const result = await supplyJetton(
+            underlyingHolder,
+            master,
+            underlyingAsset.wallet,
+            amount,
+            principleToken.minter,
+            yieldToken.minter,
+        );
         const userAddress = await master.getWalletAddress(underlyingHolder.address);
 
         expect(result.transactions).toHaveTransaction({
             from: master.address,
             to: userAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
@@ -202,7 +227,17 @@ describe('User', () => {
         const amount: bigint = 109n;
         const currentTimestamp: bigint = BigInt(Math.floor(Date.now() / 1000)) - 1000n;
 
-        let newMaster = await setupMaster(blockchain, deployer, masterCode, userCode, underlyingAsset.minter, undefined, currentTimestamp, index, kp.publicKey);
+        let newMaster = await setupMaster(
+            blockchain,
+            deployer,
+            masterCode,
+            userCode,
+            underlyingAsset.minter,
+            undefined,
+            currentTimestamp,
+            index,
+            kp.publicKey,
+        );
 
         const principleRandomSeed = Math.floor(Math.random() * 10000);
         const principleJettonMinter = blockchain.openContract(
@@ -210,10 +245,10 @@ describe('User', () => {
                 {
                     adminAddress: newMaster.address,
                     content: beginCell().storeUint(principleRandomSeed, 256).endCell(),
-                    jettonWalletCode: jettonWalletCode
+                    jettonWalletCode: jettonWalletCode,
                 },
-                jettonMinterCode
-            )
+                jettonMinterCode,
+            ),
         );
 
         let result = await principleJettonMinter.sendDeploy(deployer.getSender(), toNano('0.01'));
@@ -222,11 +257,11 @@ describe('User', () => {
             from: deployer.address,
             to: principleJettonMinter.address,
             deploy: true,
-            success: true
+            success: true,
         });
 
         principleToken = {
-            minter: principleJettonMinter
+            minter: principleJettonMinter,
         };
 
         const yieldRandomSeed = Math.floor(Math.random() * 10000);
@@ -235,10 +270,10 @@ describe('User', () => {
                 {
                     adminAddress: newMaster.address,
                     content: beginCell().storeUint(yieldRandomSeed, 256).endCell(),
-                    jettonWalletCode: jettonWalletCode
+                    jettonWalletCode: jettonWalletCode,
                 },
-                jettonMinterCode
-            )
+                jettonMinterCode,
+            ),
         );
 
         result = await yieldJettonMinter.sendDeploy(deployer.getSender(), toNano('0.01'));
@@ -247,38 +282,39 @@ describe('User', () => {
             from: deployer.address,
             to: yieldJettonMinter.address,
             deploy: true,
-            success: true
+            success: true,
         });
 
         yieldToken = {
-            minter: yieldJettonMinter
+            minter: yieldJettonMinter,
         };
 
-        await newMaster.sendMinderAddr(
-            {
-                opCode: Opcodes.setPTMinderAddr,
-                minderAddr: principleToken.minter.address,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await newMaster.sendMinderAddr({
+            opCode: Opcodes.setPTMinderAddr,
+            minderAddr: principleToken.minter.address,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        await newMaster.sendMinderAddr(
-            {
-                opCode: Opcodes.setYTMinderAddr,
-                minderAddr: yieldToken.minter.address,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await newMaster.sendMinderAddr({
+            opCode: Opcodes.setYTMinderAddr,
+            minderAddr: yieldToken.minter.address,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        await newMaster.sendMasterTonAddr(
-            {
-                opCode: Opcodes.setMasterTONAddr,
-                masterTonAddr: await underlyingAsset.minter.getWalletAddress(newMaster.address),
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await newMaster.sendMasterTonAddr({
+            opCode: Opcodes.setMasterTONAddr,
+            masterTonAddr: await underlyingAsset.minter.getWalletAddress(newMaster.address),
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        result = await supplyJetton(underlyingHolder, newMaster, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        result = await supplyJetton(
+            underlyingHolder,
+            newMaster,
+            underlyingAsset.wallet,
+            amount,
+            principleToken.minter,
+            yieldToken.minter,
+        );
 
         const userAddress = await newMaster.getWalletAddress(underlyingHolder.address);
         const userPrincipleWalletAddress = await principleToken.minter.getWalletAddress(underlyingHolder.address);
@@ -288,21 +324,21 @@ describe('User', () => {
             from: newMaster.address,
             to: userAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         expect(result.transactions).toHaveTransaction({
             from: principleToken.minter.address,
             to: userPrincipleWalletAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         expect(result.transactions).toHaveTransaction({
             from: yieldToken.minter.address,
             to: userYieldTokenWalletAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
@@ -327,70 +363,69 @@ describe('User', () => {
                 .storeAddress(await yieldToken.minter.getWalletAddress(userAddress))
                 .storeAddress(await underlyingAsset.minter.getWalletAddress(newMaster.address))
                 .storeUint(0, 2)
-                .endCell()
+                .endCell(),
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: underlyingHolder.address,
             to: userPrincipleWalletAddress,
-            success: true
+            success: true,
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: userPrincipleWalletAddress,
             to: await principleToken.minter.getWalletAddress(userAddress),
             success: true,
-            deploy: true
+            deploy: true,
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: await principleToken.minter.getWalletAddress(userAddress),
             to: userAddress,
-            success: true
+            success: true,
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: userAddress,
             to: principleToken.minter.address,
-            success: true
+            success: true,
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: principleToken.minter.address,
             to: userAddress,
-            success: true
+            success: true,
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: userAddress,
             to: await principleToken.minter.getWalletAddress(userAddress),
-            success: true
+            success: true,
         });
-
 
         expect(transferResult.transactions).toHaveTransaction({
             from: userAddress,
             to: newMaster.address,
-            success: true
+            success: true,
         });
 
         expect(transferResult.transactions).toHaveTransaction({
             from: newMaster.address,
             to: await underlyingAsset.minter.getWalletAddress(newMaster.address),
-            success: true
+            success: true,
         });
-        
+
         const underlyingHolderWallet = await underlyingAsset.minter.getWalletAddress(underlyingHolder.address);
         expect(transferResult.transactions).toHaveTransaction({
             from: await underlyingAsset.minter.getWalletAddress(newMaster.address),
             to: underlyingHolderWallet,
-            success: true
+            success: true,
         });
-        
+
         const underlyingJettonWallet = JettonWallet.createFromAddress(underlyingHolderWallet);
         const underlyingJetton = blockchain.openContract(underlyingJettonWallet);
         const balance = await underlyingJetton.getBalance();
-        const expectedBalance = (burnAmount / index) + (1000n - amount);
+        const expectedBalance = burnAmount / index + (1000n - amount);
         expect(balance).toEqual(expectedBalance);
     });
 
@@ -399,7 +434,17 @@ describe('User', () => {
         const currentTimestamp: bigint = BigInt(Math.floor(Date.now() / 1000));
         const newTimestamp: bigint = currentTimestamp + 5n;
 
-        let newMaster = await setupMaster(blockchain, deployer, masterCode, userCode, underlyingAsset.minter, undefined, newTimestamp, index, kp.publicKey);
+        let newMaster = await setupMaster(
+            blockchain,
+            deployer,
+            masterCode,
+            userCode,
+            underlyingAsset.minter,
+            undefined,
+            newTimestamp,
+            index,
+            kp.publicKey,
+        );
 
         const principleRandomSeed = Math.floor(Math.random() * 10000);
         const principleJettonMinter = blockchain.openContract(
@@ -407,10 +452,10 @@ describe('User', () => {
                 {
                     adminAddress: newMaster.address,
                     content: beginCell().storeUint(principleRandomSeed, 256).endCell(),
-                    jettonWalletCode: jettonWalletCode
+                    jettonWalletCode: jettonWalletCode,
                 },
-                jettonMinterCode
-            )
+                jettonMinterCode,
+            ),
         );
 
         let result = await principleJettonMinter.sendDeploy(deployer.getSender(), toNano('0.01'));
@@ -419,11 +464,11 @@ describe('User', () => {
             from: deployer.address,
             to: principleJettonMinter.address,
             deploy: true,
-            success: true
+            success: true,
         });
 
         principleToken = {
-            minter: principleJettonMinter
+            minter: principleJettonMinter,
         };
 
         const yieldRandomSeed = Math.floor(Math.random() * 10000);
@@ -432,10 +477,10 @@ describe('User', () => {
                 {
                     adminAddress: newMaster.address,
                     content: beginCell().storeUint(yieldRandomSeed, 256).endCell(),
-                    jettonWalletCode: jettonWalletCode
+                    jettonWalletCode: jettonWalletCode,
                 },
-                jettonMinterCode
-            )
+                jettonMinterCode,
+            ),
         );
 
         result = await yieldJettonMinter.sendDeploy(deployer.getSender(), toNano('0.01'));
@@ -444,37 +489,38 @@ describe('User', () => {
             from: deployer.address,
             to: yieldJettonMinter.address,
             deploy: true,
-            success: true
+            success: true,
         });
 
         yieldToken = {
-            minter: yieldJettonMinter
+            minter: yieldJettonMinter,
         };
-        await newMaster.sendMinderAddr(
-            {
-                opCode: Opcodes.setPTMinderAddr,
-                minderAddr: principleToken.minter.address,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await newMaster.sendMinderAddr({
+            opCode: Opcodes.setPTMinderAddr,
+            minderAddr: principleToken.minter.address,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        await newMaster.sendMinderAddr(
-            {
-                opCode: Opcodes.setYTMinderAddr,
-                minderAddr: yieldToken.minter.address,
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await newMaster.sendMinderAddr({
+            opCode: Opcodes.setYTMinderAddr,
+            minderAddr: yieldToken.minter.address,
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        await newMaster.sendMasterTonAddr(
-            {
-                opCode: Opcodes.setMasterTONAddr,
-                masterTonAddr: await underlyingAsset.minter.getWalletAddress(newMaster.address),
-                signFunc: (buf: Buffer) => sign(buf, kp.secretKey)
-            }
-        );
+        await newMaster.sendMasterTonAddr({
+            opCode: Opcodes.setMasterTONAddr,
+            masterTonAddr: await underlyingAsset.minter.getWalletAddress(newMaster.address),
+            signFunc: (buf: Buffer) => sign(buf, kp.secretKey),
+        });
 
-        result = await supplyJetton(underlyingHolder, newMaster, underlyingAsset.wallet, amount, principleToken.minter, yieldToken.minter);
+        result = await supplyJetton(
+            underlyingHolder,
+            newMaster,
+            underlyingAsset.wallet,
+            amount,
+            principleToken.minter,
+            yieldToken.minter,
+        );
 
         const userAddress = await newMaster.getWalletAddress(underlyingHolder.address);
         const userPrincipleWalletAddress = await principleToken.minter.getWalletAddress(underlyingHolder.address);
@@ -484,21 +530,21 @@ describe('User', () => {
             from: newMaster.address,
             to: userAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         expect(result.transactions).toHaveTransaction({
             from: principleToken.minter.address,
             to: userPrincipleWalletAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         expect(result.transactions).toHaveTransaction({
             from: yieldToken.minter.address,
             to: userYieldTokenWalletAddress,
             deploy: true,
-            success: true
+            success: true,
         });
 
         const user = blockchain.openContract(User.createFromAddress(userAddress));
@@ -522,45 +568,45 @@ describe('User', () => {
                 .storeAddress(await principleToken.minter.getWalletAddress(userAddress))
                 .storeAddress(await yieldToken.minter.getWalletAddress(userAddress))
                 .storeAddress(await underlyingAsset.minter.getWalletAddress(newMaster.address))
-                .storeUint(0,2)
-                .endCell()
+                .storeUint(0, 2)
+                .endCell(),
         });
 
         expect(redeemResult.transactions).toHaveTransaction({
             from: underlyingHolder.address,
             to: userPrincipleWalletAddress,
-            success: true
+            success: true,
         });
 
         expect(redeemResult.transactions).toHaveTransaction({
             from: userPrincipleWalletAddress,
             to: await principleToken.minter.getWalletAddress(userAddress),
             success: true,
-            deploy: true
+            deploy: true,
         });
 
         expect(redeemResult.transactions).toHaveTransaction({
             from: await principleToken.minter.getWalletAddress(userAddress),
             to: userAddress,
-            success: true
+            success: true,
         });
 
         expect(redeemResult.transactions).toHaveTransaction({
             from: userAddress,
             to: principleToken.minter.address,
-            success: true
+            success: true,
         });
 
         expect(redeemResult.transactions).toHaveTransaction({
             from: principleToken.minter.address,
             to: userAddress,
-            success: true
+            success: true,
         });
 
         expect(redeemResult.transactions).toHaveTransaction({
             from: userAddress,
             to: await principleToken.minter.getWalletAddress(userAddress),
-            success: true
+            success: true,
         });
         const finishRedeemResult = await userYieldWallet.sendTransfer(underlyingHolder.getSender(), {
             value: toNano('0.5'),
@@ -574,72 +620,70 @@ describe('User', () => {
                 .storeAddress(await principleToken.minter.getWalletAddress(userAddress))
                 .storeAddress(await yieldToken.minter.getWalletAddress(userAddress))
                 .storeAddress(await underlyingAsset.minter.getWalletAddress(newMaster.address))
-                .storeUint(1,2)
-                .endCell()
+                .storeUint(1, 2)
+                .endCell(),
         });
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: underlyingHolder.address,
             to: userYieldTokenWalletAddress,
-            success: true
+            success: true,
         });
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: userYieldTokenWalletAddress,
             to: await yieldToken.minter.getWalletAddress(userAddress),
             success: true,
-            deploy: true
+            deploy: true,
         });
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: await yieldToken.minter.getWalletAddress(userAddress),
             to: userAddress,
-            success: true
+            success: true,
         });
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: userAddress,
             to: yieldToken.minter.address,
-            success: true
+            success: true,
         });
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: yieldToken.minter.address,
             to: userAddress,
-            success: true
+            success: true,
         });
-
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: userAddress,
             to: await yieldToken.minter.getWalletAddress(userAddress),
-            success: true
+            success: true,
         });
-
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: userAddress,
             to: newMaster.address,
-            success: true
+            success: true,
         });
 
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: newMaster.address,
             to: await underlyingAsset.minter.getWalletAddress(newMaster.address),
-            success: true
+            success: true,
         });
 
         const underlyingHolderWallet = await underlyingAsset.minter.getWalletAddress(underlyingHolder.address);
         expect(finishRedeemResult.transactions).toHaveTransaction({
             from: await underlyingAsset.minter.getWalletAddress(newMaster.address),
             to: underlyingHolderWallet,
-            success: true
+            success: true,
         });
 
         const underlyingJettonWallet = JettonWallet.createFromAddress(underlyingHolderWallet);
         const underlyingJetton = blockchain.openContract(underlyingJettonWallet);
         const balance = await underlyingJetton.getBalance();
-        const expectedBalance = (burnAmount / index) + (1000n - amount);
+        const expectedBalance = burnAmount / index + (1000n - amount);
         expect(balance).toEqual(expectedBalance);
     });
 });

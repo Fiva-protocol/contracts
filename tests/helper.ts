@@ -16,7 +16,7 @@ export async function setupMaster(
     underlyingAssetWallet: SandboxContract<JettonWallet> | undefined,
     maturity: bigint,
     index: bigint,
-    pubKey: Buffer
+    pubKey: Buffer,
 ) {
     const master = blockchain.openContract(
         Master.createFromConfig(
@@ -28,10 +28,10 @@ export async function setupMaster(
                 maturity: maturity,
                 index: index,
                 pubKey: pubKey,
-                tokens: beginCell().endCell()
+                tokens: beginCell().endCell(),
             },
-            masterCode
-        )
+            masterCode,
+        ),
     );
 
     const result = await master.sendDeploy(deployer.getSender(), toNano('0.9'));
@@ -39,7 +39,7 @@ export async function setupMaster(
         from: deployer.address,
         to: master.address,
         deploy: true,
-        success: true
+        success: true,
     });
 
     return master;
@@ -51,7 +51,7 @@ export async function deployJettonWithWallet(
     jettonMinterCode: Cell,
     jettonWalletCode: Cell,
     sendTokensToAddr: Address,
-    jettonsAmount: bigint
+    jettonsAmount: bigint,
 ) {
     const randomSeed = Math.floor(Math.random() * 10000);
     const jettonMinter = blockchain.openContract(
@@ -59,10 +59,10 @@ export async function deployJettonWithWallet(
             {
                 adminAddress: deployer.address,
                 content: beginCell().storeUint(randomSeed, 256).endCell(),
-                jettonWalletCode: jettonWalletCode
+                jettonWalletCode: jettonWalletCode,
             },
-            jettonMinterCode
-        )
+            jettonMinterCode,
+        ),
     );
 
     let result = await jettonMinter.sendDeploy(deployer.getSender(), toNano('0.05'));
@@ -71,7 +71,7 @@ export async function deployJettonWithWallet(
         from: deployer.address,
         to: jettonMinter.address,
         deploy: true,
-        success: true
+        success: true,
     });
 
     result = await jettonMinter.sendMint(deployer.getSender(), {
@@ -79,13 +79,13 @@ export async function deployJettonWithWallet(
         jettonAmount: jettonsAmount,
         amount: toNano('0.05'),
         queryId: Date.now(),
-        value: toNano('0.2')
+        value: toNano('0.2'),
     });
     expect(result.transactions).toHaveTransaction({
         from: deployer.address,
         to: jettonMinter.address,
         deploy: false,
-        success: true
+        success: true,
     });
 
     const creator_wallet_addr = await jettonMinter.getWalletAddress(sendTokensToAddr);
@@ -96,7 +96,7 @@ export async function deployJettonWithWallet(
 
     return {
         minter: jettonMinter,
-        wallet: walletJetton
+        wallet: walletJetton,
     };
 }
 
@@ -106,29 +106,26 @@ export async function supplyJetton(
     underlyingJettonWallet: SandboxContract<JettonWallet>,
     amount: bigint,
     principleJettonMinter: SandboxContract<JettonMinter>,
-    yieldJettonMinter: SandboxContract<JettonMinter>
+    yieldJettonMinter: SandboxContract<JettonMinter>,
 ) {
     return await underlyingJettonWallet.sendTransfer(underlyingHolder.getSender(), {
-            value: toNano('0.8'),
-            toAddress: master.address,
-            queryId: 1,
-            jettonAmount: amount,
-            fwdAmount: toNano('0.3'),
-            fwdPayload: beginCell()
-                .storeUint(Opcodes.supply, 32) // op code
-                .storeUint(11, 64) // query id
-                .storeAddress(underlyingHolder.address)
-                .storeCoins(amount)
-                .storeAddress(yieldJettonMinter.address)
-                .storeAddress(principleJettonMinter.address)
-                .endCell()
-        }
-    );
+        value: toNano('0.8'),
+        toAddress: master.address,
+        queryId: 1,
+        jettonAmount: amount,
+        fwdAmount: toNano('0.3'),
+        fwdPayload: beginCell()
+            .storeUint(Opcodes.supply, 32) // op code
+            .storeUint(11, 64) // query id
+            .storeAddress(underlyingHolder.address)
+            .storeCoins(amount)
+            .storeAddress(yieldJettonMinter.address)
+            .storeAddress(principleJettonMinter.address)
+            .endCell(),
+    });
 }
 
-export async function beforeSetup() {
-
-}
+export async function beforeSetup() {}
 
 export async function assertJettonBalanceEqual(blockchain: Blockchain, jettonAddress: Address, equalTo: bigint) {
     const jettonWallet = JettonWallet.createFromAddress(jettonAddress);

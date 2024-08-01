@@ -10,7 +10,7 @@ export type MasterConfig = {
     maturity: bigint;
     index: bigint;
     pubKey: Buffer;
-    tokens: Cell,
+    tokens: Cell;
 };
 
 export function masterConfigToCell(config: MasterConfig): Cell {
@@ -19,18 +19,18 @@ export function masterConfigToCell(config: MasterConfig): Cell {
         .storeRef(config.userCode)
         .storeAddress(config.underlyingAssetMinterAddr)
         .storeAddress(config.underlyingAssetWalletAddr)
-        .storeRef(beginCell()
-            .storeUint(config.maturity, 32)
-            .storeUint(config.index, 32)
-            .storeBuffer(config.pubKey)
-            .endCell())
+        .storeRef(
+            beginCell().storeUint(config.maturity, 32).storeUint(config.index, 32).storeBuffer(config.pubKey).endCell(),
+        )
         .storeRef(config.tokens)
         .endCell();
 }
 
 export class Master implements Contract {
-    constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {
-    }
+    constructor(
+        readonly address: Address,
+        readonly init?: { code: Cell; data: Cell },
+    ) {}
 
     static createFromAddress(address: Address) {
         return new Master(address);
@@ -46,7 +46,7 @@ export class Master implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell()
+            body: beginCell().endCell(),
         });
     }
 
@@ -57,7 +57,7 @@ export class Master implements Contract {
             amount: bigint;
             queryId: number;
             tsMasterAddress: Address;
-        }
+        },
     ) {
         const result = await provider.internal(via, {
             value: opts.amount,
@@ -67,99 +67,77 @@ export class Master implements Contract {
                 .storeUint(opts.queryId, 64)
                 .storeCoins(opts.amount)
                 .storeAddress(opts.tsMasterAddress)
-                .endCell()
+                .endCell(),
         });
 
         return result;
     }
 
-    async sendUpdateWalletAddr(provider: ContractProvider, via: Sender, value: bigint, opts: {
-        queryId: number;
-    }) {
+    async sendUpdateWalletAddr(
+        provider: ContractProvider,
+        via: Sender,
+        value: bigint,
+        opts: {
+            queryId: number;
+        },
+    ) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-                .storeUint(Opcodes.updateMasterWalletAddr, 32)
-                .storeUint(opts.queryId, 64)
-                .endCell()
+            body: beginCell().storeUint(Opcodes.updateMasterWalletAddr, 32).storeUint(opts.queryId, 64).endCell(),
         });
     }
 
     async sendUpdateIndex(
         provider: ContractProvider,
         opts: {
-            opCode: number,
-            index: bigint,
+            opCode: number;
+            index: bigint;
             signFunc: (buf: Buffer) => Buffer;
-        }
+        },
     ) {
-        const msgToSign = beginCell()
-            .storeUint(opts.opCode, 32)
-            .storeUint(opts.index, 32)
-            .endCell();
+        const msgToSign = beginCell().storeUint(opts.opCode, 32).storeUint(opts.index, 32).endCell();
 
         const signature = opts.signFunc(msgToSign.hash());
 
-        await provider.external(
-            beginCell()
-                .storeBuffer(signature)
-                .storeSlice(msgToSign.asSlice())
-                .endCell()
-        );
+        await provider.external(beginCell().storeBuffer(signature).storeSlice(msgToSign.asSlice()).endCell());
     }
 
     async sendMinderAddr(
         provider: ContractProvider,
         opts: {
-            opCode: number,
-            minderAddr: Address,
+            opCode: number;
+            minderAddr: Address;
             signFunc: (buf: Buffer) => Buffer;
-        }
+        },
     ) {
-        const msgToSign = beginCell()
-            .storeUint(opts.opCode, 32)
-            .storeAddress(opts.minderAddr)
-            .endCell();
+        const msgToSign = beginCell().storeUint(opts.opCode, 32).storeAddress(opts.minderAddr).endCell();
 
         const signature = opts.signFunc(msgToSign.hash());
 
-        await provider.external(
-            beginCell()
-                .storeBuffer(signature)
-                .storeSlice(msgToSign.asSlice())
-                .endCell()
-        );
+        await provider.external(beginCell().storeBuffer(signature).storeSlice(msgToSign.asSlice()).endCell());
     }
 
     async sendMasterTonAddr(
         provider: ContractProvider,
         opts: {
-            opCode: number,
-            masterTonAddr: Address,
+            opCode: number;
+            masterTonAddr: Address;
             signFunc: (buf: Buffer) => Buffer;
-        }
+        },
     ) {
-        const msgToSign = beginCell()
-            .storeUint(opts.opCode, 32)
-            .storeAddress(opts.masterTonAddr)
-            .endCell();
+        const msgToSign = beginCell().storeUint(opts.opCode, 32).storeAddress(opts.masterTonAddr).endCell();
 
         const signature = opts.signFunc(msgToSign.hash());
 
-        await provider.external(
-            beginCell()
-                .storeBuffer(signature)
-                .storeSlice(msgToSign.asSlice())
-                .endCell()
-        );
+        await provider.external(beginCell().storeBuffer(signature).storeSlice(msgToSign.asSlice()).endCell());
     }
     async getWalletAddress(provider: ContractProvider, address: Address) {
         const result = await provider.get('get_wallet_address', [
             {
                 type: 'slice',
-                cell: beginCell().storeAddress(address).endCell()
-            } as TupleItemSlice
+                cell: beginCell().storeAddress(address).endCell(),
+            } as TupleItemSlice,
         ]);
 
         return result.stack.readAddress();
@@ -184,7 +162,7 @@ export class Master implements Contract {
         const result = await provider.get('get_pt_yt_minter_addr', []);
         return {
             pt: result.stack.readAddress(),
-            yt: result.stack.readAddress()
+            yt: result.stack.readAddress(),
         };
     }
     async getMasterTonAddresses(provider: ContractProvider) {

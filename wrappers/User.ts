@@ -1,23 +1,14 @@
-import {
-    Address,
-    beginCell,
-    Cell,
-    Contract,
-    contractAddress,
-    ContractProvider,
-    Sender,
-    SendMode
-} from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 import { Opcodes } from '../helpers/Opcodes';
 
 export type UserConfig = {
     owner: Address;
     masterContract: Address;
     maturity: bigint;
-    index: bigint,
-    interest: bigint,
-    ytBalance: bigint,
-    burn: Cell
+    index: bigint;
+    interest: bigint;
+    ytBalance: bigint;
+    burn: Cell;
 };
 
 export function userConfigToCell(config: UserConfig): Cell {
@@ -35,9 +26,8 @@ export function userConfigToCell(config: UserConfig): Cell {
 export class User implements Contract {
     constructor(
         readonly address: Address,
-        readonly init?: { code: Cell; data: Cell }
-    ) {
-    }
+        readonly init?: { code: Cell; data: Cell },
+    ) {}
 
     static createFromAddress(address: Address) {
         return new User(address);
@@ -53,7 +43,7 @@ export class User implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell()
+            body: beginCell().endCell(),
         });
     }
 

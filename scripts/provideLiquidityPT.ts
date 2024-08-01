@@ -5,8 +5,8 @@ import { Address, TonClient4 } from '@ton/ton';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-    const tsTONAmount = toNano('5'); 
-    const PTAmount = toNano('5'); 
+    const tsTONAmount = toNano('5');
+    const PTAmount = toNano('5');
 
     const tsTONAddress = Address.parse('kQCwR07mEDg22t_TYI1oXrb5lRkRUBtmJSjpKGdw_TL2B4yf');
     const tsTON = Asset.jetton(tsTONAddress);
@@ -16,10 +16,9 @@ export async function run(provider: NetworkProvider) {
     const assets: [Asset, Asset] = [tsTON, PT];
     const targetBalances: [bigint, bigint] = [tsTONAmount, PTAmount];
 
-    const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU'); 
-    const tonClient = new TonClient4({ endpoint: 'https://sandbox-v4.tonhubapi.com' }); 
-    const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR)); 
-
+    const FACTORY_TESTNET_ADDR = Address.parse('EQDHcPxlCOSN_s-Vlw53bFpibNyKpZHV6xHhxGAAT_21nCFU');
+    const tonClient = new TonClient4({ endpoint: 'https://sandbox-v4.tonhubapi.com' });
+    const factory = tonClient.open(Factory.createFromAddress(FACTORY_TESTNET_ADDR));
 
     const tsTONVault = tonClient.open(await factory.getJettonVault(tsTONAddress));
     const PTVault = tonClient.open(await factory.getJettonVault(PTAddress));
@@ -35,10 +34,9 @@ export async function run(provider: NetworkProvider) {
         forwardPayload: VaultJetton.createDepositLiquidityPayload({
             poolType: PoolType.VOLATILE,
             assets,
-            targetBalances
-        })
+            targetBalances,
+        }),
     });
-    
 
     const PTRoot = tonClient.open(JettonRoot.createFromAddress(PTAddress));
     const PTWallet = tonClient.open(await PTRoot.getWallet(provider.sender().address!));
@@ -51,7 +49,7 @@ export async function run(provider: NetworkProvider) {
         forwardPayload: VaultJetton.createDepositLiquidityPayload({
             poolType: PoolType.VOLATILE,
             assets,
-            targetBalances
-        })
+            targetBalances,
+        }),
     });
 }
